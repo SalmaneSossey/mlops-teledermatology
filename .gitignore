@@ -1,0 +1,27 @@
+.venv/
+.codex
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local data and heavy artifacts
+data/raw/
+data/interim/
+data/processed/
+models/
+*.zip
+*.tar
+*.tar.gz
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Local environment files
+.env
+.env.*
+
+# OS/editor noise
+.DS_Store
+.vscode/
