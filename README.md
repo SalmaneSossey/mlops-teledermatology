@@ -34,3 +34,22 @@ pip install -r requirements.txt
 ## Notebooks
 
 - `notebooks/pad-ufes-20-analysis.ipynb`: exploratory data analysis before preprocessing.
+
+## Preprocessing
+
+Create image-only, patient-safe split manifests:
+
+```bash
+python -m src.data.make_image_splits
+```
+
+The command verifies image files, keeps all images from each patient in one split,
+and writes local manifests under:
+
+```text
+data/processed/splits/
+```
+
+Generated files include `train.csv`, `val.csv`, `test.csv`,
+`label_mapping.json`, `class_weights.json`, and `preprocessing_summary.json`.
+The generated processed data is intentionally ignored by git.
