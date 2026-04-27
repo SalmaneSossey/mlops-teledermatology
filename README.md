@@ -81,3 +81,13 @@ images/imgs_part_*.zip
 
 The Colab notebook extracts the image ZIP files to the Colab runtime disk before
 training.
+
+The notebook also installs and uses MLflow with a Drive-backed tracking URI:
+
+```text
+MyDrive/mlops-teledermatology/mlruns/
+```
+
+It logs hyperparameters, split metadata, class weights, per-epoch validation
+metrics, final test metrics, reports, the best checkpoint, and a PyTorch model
+artifact.
