@@ -27,6 +27,7 @@ MANIFEST_COLUMNS = [
     "lesion_id",
     "img_id",
     "image_path",
+    "image_rel_path",
     "diagnostic",
     "label_idx",
     "triage_priority",
@@ -100,7 +101,11 @@ def build_image_index(images_dir: Path) -> dict[str, Path]:
     return image_index
 
 
-def add_image_paths(data: pd.DataFrame, image_index: dict[str, Path]) -> pd.DataFrame:
+def add_image_paths(
+    data: pd.DataFrame,
+    image_index: dict[str, Path],
+    images_dir: Path | None = None,
+) -> pd.DataFrame:
     missing_images = sorted(set(data["img_id"]) - set(image_index))
     if missing_images:
         preview = ", ".join(missing_images[:10])
@@ -108,6 +113,15 @@ def add_image_paths(data: pd.DataFrame, image_index: dict[str, Path]) -> pd.Data
 
     manifest = data[["patient_id", "lesion_id", "img_id", "diagnostic"]].copy()
     manifest["image_path"] = manifest["img_id"].map(lambda img_id: str(image_index[img_id]))
+    if images_dir is not None:
+        images_dir = images_dir.resolve()
+        manifest["image_rel_path"] = manifest["img_id"].map(
+            lambda img_id: image_index[img_id].resolve().relative_to(images_dir).as_posix()
+        )
+    else:
+        manifest["image_rel_path"] = manifest["img_id"].map(
+            lambda img_id: image_index[img_id].parent.name + "/" + image_index[img_id].name
+        )
     manifest["label_idx"] = manifest["diagnostic"].map(LABEL_TO_INDEX)
     manifest["triage_priority"] = manifest["diagnostic"].map(TRIAGE_PRIORITY)
     return manifest
@@ -366,7 +380,7 @@ def main() -> None:
     )
     data = load_metadata(args.metadata_path)
     image_index = build_image_index(args.images_dir)
-    manifest = add_image_paths(data, image_index)
+    manifest = add_image_paths(data, image_index, args.images_dir)
     split_manifest = apply_splits(manifest, config)
     validate_split_manifest(split_manifest)
     write_outputs(split_manifest, args.output_dir, config)

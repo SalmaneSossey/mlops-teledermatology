@@ -56,7 +56,7 @@ class MakeImageSplitsTest(unittest.TestCase):
             patient_split_counts = first.groupby("patient_id")["split"].nunique()
             self.assertEqual(patient_split_counts.max(), 1)
 
-    def test_derived_fields_are_added_without_clinical_features(self):
+    def test_image_paths_and_derived_fields_are_added_without_clinical_features(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             metadata = self.make_dataset(root)
@@ -64,13 +64,15 @@ class MakeImageSplitsTest(unittest.TestCase):
             metadata["age"] = 50
 
             image_index = build_image_index(root / "all_images")
-            manifest = add_image_paths(metadata, image_index)
+            manifest = add_image_paths(metadata, image_index, root / "all_images")
 
             self.assertIn("image_path", manifest.columns)
+            self.assertIn("image_rel_path", manifest.columns)
             self.assertIn("label_idx", manifest.columns)
             self.assertIn("triage_priority", manifest.columns)
             self.assertNotIn("biopsed", manifest.columns)
             self.assertNotIn("age", manifest.columns)
+            self.assertTrue(manifest["image_rel_path"].str.startswith("imgs_part_1/").all())
             self.assertEqual(manifest.loc[manifest["diagnostic"] == "ACK", "label_idx"].iloc[0], 0)
             self.assertEqual(manifest.loc[manifest["diagnostic"] == "MEL", "triage_priority"].iloc[0], "high")
 
