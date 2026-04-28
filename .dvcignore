@@ -1,0 +1,6 @@
+# Add patterns of files dvc should ignore, which could improve
+# the performance. Learn more at
+# https://dvc.org/doc/user-guide/dvcignore
+
+# Hugging Face upload/download bookkeeping inside large data folders.
+data/raw/pad_ufes_20/.cache/

@@ -4,3 +4,9 @@ pandas
 numpy
 matplotlib
 pillow
+scikit-learn
+torch
+torchvision
+mlflow
+dvc
+huggingface_hub

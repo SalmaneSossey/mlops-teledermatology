@@ -6,10 +6,17 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Local data and heavy artifacts
-data/raw/
-data/interim/
-data/processed/
+data/raw/*
+!data/raw/.gitignore
+!data/raw/*.dvc
+data/interim/*
+!data/interim/.gitignore
+!data/interim/*.dvc
+data/processed/*
+!data/processed/.gitignore
+!data/processed/*.dvc
 models/
+mlruns/
 *.zip
 *.tar
 *.tar.gz

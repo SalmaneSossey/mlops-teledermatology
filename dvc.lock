@@ -1,0 +1,21 @@
+schema: '2.0'
+stages:
+  make_image_splits:
+    cmd: python -m src.data.make_image_splits --metadata-path data/raw/pad_ufes_20/metadata.csv
+      --images-dir data/raw/pad_ufes_20/all_images --output-dir data/processed/splits
+    deps:
+    - path: data/raw/pad_ufes_20
+      hash: md5
+      md5: ab298460fca9af256cca7e40fb129f7d.dir
+      size: 3606849878
+      nfiles: 2299
+    - path: src/data/make_image_splits.py
+      hash: md5
+      md5: 26a039f6e109c7fa33707f6885aae28f
+      size: 14272
+    outs:
+    - path: data/processed/splits
+      hash: md5
+      md5: b507fe8a26c71f1b1a25f5dd614821ac.dir
+      size: 342643
+      nfiles: 6

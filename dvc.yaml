@@ -1,0 +1,9 @@
+stages:
+  make_image_splits:
+    cmd: python -m src.data.make_image_splits --metadata-path data/raw/pad_ufes_20/metadata.csv
+      --images-dir data/raw/pad_ufes_20/all_images --output-dir data/processed/splits
+    deps:
+    - data/raw/pad_ufes_20
+    - src/data/make_image_splits.py
+    outs:
+    - data/processed/splits

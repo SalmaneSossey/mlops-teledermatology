@@ -1,0 +1,6 @@
+outs:
+- md5: ab298460fca9af256cca7e40fb129f7d.dir
+  size: 3606849878
+  nfiles: 2299
+  hash: md5
+  path: pad_ufes_20
