@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Unit tests and hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -q
+
+      - name: Check training CLI help
+        run: |
+          python -m src.training.train_image_baseline --help
+          python -m src.training.train_metadata_baseline --help
+
+      - name: Check hyperparameter sweep dry run
+        run: |
+          python -m src.training.run_hparam_sweep \
+            --images-dir /tmp/images \
+            --splits-dir /tmp/splits \
+            --output-dir /tmp/run \
+            --max-trials 3 \
+            --dry-run
+
+      - name: Compile source
+        run: python -m compileall -q src tests scripts
+
+      - name: Check Colab notebook hygiene
+        run: python scripts/check_notebook_hygiene.py notebooks/colab-image-baseline.ipynb
+
+  docker:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build development image
+        run: docker build -t mlops-teledermatology:dev .
+
+      - name: Run tests in container
+        run: docker run --rm mlops-teledermatology:dev python -m unittest discover -s tests -q
+
+      - name: Check CLIs in container
+        run: |
+          docker run --rm mlops-teledermatology:dev python -m src.training.train_image_baseline --help
+          docker run --rm mlops-teledermatology:dev python -m src.training.run_hparam_sweep \
+            --images-dir /tmp/images \
+            --splits-dir /tmp/splits \
+            --output-dir /tmp/run \
+            --dry-run
+          docker run --rm mlops-teledermatology:dev python -m src.training.train_metadata_baseline --help
+          docker run --rm mlops-teledermatology:dev python -m src.inference.predict_image --help

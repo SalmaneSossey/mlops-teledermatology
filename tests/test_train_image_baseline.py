@@ -9,12 +9,15 @@ import pandas as pd
 
 from src.training.train_image_baseline import (
     DEFAULT_LABELS,
+    TrainingConfig,
     WorkerSeeder,
     build_artifact_paths,
     high_risk_label_indices,
     high_risk_recall,
     load_split_inputs,
+    sample_weights_for_training,
     selection_score,
+    validate_training_options,
 )
 
 
@@ -88,6 +91,24 @@ class TrainImageBaselineHelpersTest(unittest.TestCase):
         score = selection_score({"macro_f1": 0.5, "high_risk_recall": 0.9})
 
         self.assertAlmostEqual(score, 0.7)
+
+    def test_sample_weights_prioritize_rare_training_classes(self):
+        frame = pd.DataFrame({"diagnostic": ["ACK", "ACK", "ACK", "MEL"]})
+
+        weights = sample_weights_for_training(frame, ["ACK", "MEL"])
+
+        self.assertLess(weights[0], weights[-1])
+
+    def test_validate_training_options_rejects_unknown_sampler(self):
+        config = TrainingConfig(
+            images_dir=Path("/images"),
+            splits_dir=Path("/splits"),
+            output_dir=Path("/out"),
+            sampler="mystery",
+        )
+
+        with self.assertRaises(ValueError):
+            validate_training_options(config)
 
     def test_worker_seeder_is_repeatable(self):
         seeder = WorkerSeeder(base_seed=123)

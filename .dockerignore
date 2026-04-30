@@ -1,0 +1,29 @@
+.git/
+.github/
+.venv/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local data, checkpoints, and experiment outputs
+data/raw/
+data/interim/
+data/processed/
+models/
+mlruns/
+*.zip
+*.tar
+*.tar.gz
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Local secrets and editor noise
+.env
+.env.*
+.codex
+.DS_Store
+.vscode/
+whereIma.txt

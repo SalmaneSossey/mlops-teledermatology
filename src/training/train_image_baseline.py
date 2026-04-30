@@ -19,6 +19,9 @@ import pandas as pd
 DEFAULT_LABELS = ["ACK", "BCC", "MEL", "NEV", "SCC", "SEK"]
 HIGH_RISK_LABELS = ["BCC", "MEL", "SCC"]
 DEFAULT_EXPERIMENT_NAME = "pad-ufes-20-image-baseline"
+LOSS_TYPES = ["weighted_cross_entropy", "focal_loss"]
+SAMPLERS = ["shuffle", "weighted_random"]
+AUGMENT_STRENGTHS = ["current", "mild"]
 
 
 @dataclass(frozen=True)
@@ -59,6 +62,10 @@ class TrainingConfig:
     hf_dataset_repo: str | None = None
     require_gpu: bool = True
     backbone: str = "efficientnet_b0"
+    loss_type: str = "weighted_cross_entropy"
+    sampler: str = "shuffle"
+    augment_strength: str = "current"
+    focal_gamma: float = 2.0
 
 
 @dataclass(frozen=True)
@@ -155,6 +162,20 @@ def selection_score(metrics: dict[str, float]) -> float:
     return float(0.5 * metrics["macro_f1"] + 0.5 * metrics["high_risk_recall"])
 
 
+def validate_training_options(config: TrainingConfig) -> None:
+    if config.loss_type not in LOSS_TYPES:
+        raise ValueError(f"loss_type must be one of {LOSS_TYPES}, got {config.loss_type!r}")
+    if config.sampler not in SAMPLERS:
+        raise ValueError(f"sampler must be one of {SAMPLERS}, got {config.sampler!r}")
+    if config.augment_strength not in AUGMENT_STRENGTHS:
+        raise ValueError(
+            f"augment_strength must be one of {AUGMENT_STRENGTHS}, "
+            f"got {config.augment_strength!r}"
+        )
+    if config.focal_gamma <= 0:
+        raise ValueError("focal_gamma must be positive")
+
+
 def seed_worker(worker_id: int, base_seed: int) -> None:
     worker_seed = (base_seed + worker_id) % 2**32
     random.seed(worker_seed)
@@ -214,18 +235,34 @@ def configure_mlflow_auth() -> None:
         os.environ.pop("MLFLOW_TRACKING_PASSWORD", None)
 
 
-def make_transforms(image_size: int):
+def make_transforms(image_size: int, augment_strength: str = "current"):
     from torchvision import transforms
 
     imagenet_mean = [0.485, 0.456, 0.406]
     imagenet_std = [0.229, 0.224, 0.225]
-    train_transform = transforms.Compose(
-        [
+    if augment_strength == "current":
+        train_steps = [
             transforms.Resize((image_size, image_size)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(20),
             transforms.ColorJitter(brightness=0.12, contrast=0.12, saturation=0.08, hue=0.02),
+        ]
+    elif augment_strength == "mild":
+        train_steps = [
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(10),
+            transforms.ColorJitter(brightness=0.06, contrast=0.06, saturation=0.04, hue=0.01),
+        ]
+    else:
+        raise ValueError(
+            f"augment_strength must be one of {AUGMENT_STRENGTHS}, got {augment_strength!r}"
+        )
+
+    train_transform = transforms.Compose(
+        [
+            *train_steps,
             transforms.ToTensor(),
             transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
         ]
@@ -240,22 +277,40 @@ def make_transforms(image_size: int):
     return train_transform, eval_transform
 
 
+def sample_weights_for_training(train_frame: pd.DataFrame, labels: Sequence[str]) -> list[float]:
+    counts = train_frame["diagnostic"].value_counts().reindex(labels, fill_value=0)
+    weights = {label: 1.0 / max(int(counts[label]), 1) for label in labels}
+    return [weights[label] for label in train_frame["diagnostic"]]
+
+
 def build_dataloaders(inputs: SplitInputs, config: TrainingConfig, device):
     import torch
-    from torch.utils.data import DataLoader
+    from torch.utils.data import DataLoader, WeightedRandomSampler
 
-    train_transform, eval_transform = make_transforms(config.image_size)
+    train_transform, eval_transform = make_transforms(config.image_size, config.augment_strength)
     pin_memory = device.type == "cuda"
     worker_init_fn = WorkerSeeder(config.seed)
+    generator = make_torch_generator(config.seed)
+    sampler = None
+    shuffle = True
+    if config.sampler == "weighted_random":
+        sampler = WeightedRandomSampler(
+            weights=torch.DoubleTensor(sample_weights_for_training(inputs.train, inputs.labels)),
+            num_samples=len(inputs.train),
+            replacement=True,
+            generator=generator,
+        )
+        shuffle = False
 
     train_loader = DataLoader(
         PadUfesImageDataset(inputs.train, config.images_dir, train_transform),
         batch_size=config.batch_size,
-        shuffle=True,
+        shuffle=shuffle,
+        sampler=sampler,
         num_workers=config.num_workers,
         pin_memory=pin_memory,
         worker_init_fn=worker_init_fn,
-        generator=make_torch_generator(config.seed),
+        generator=generator,
     )
     val_loader = DataLoader(
         PadUfesImageDataset(inputs.val, config.images_dir, eval_transform),
@@ -284,6 +339,37 @@ def build_model(num_classes: int):
     in_features = model.classifier[1].in_features
     model.classifier[1] = nn.Linear(in_features, num_classes)
     return model
+
+
+class FocalLoss:
+    def __init__(self, weight=None, gamma: float = 2.0):
+        self.weight = weight
+        self.gamma = gamma
+
+    def __call__(self, logits, targets):
+        import torch
+        import torch.nn.functional as functional
+
+        log_probabilities = functional.log_softmax(logits, dim=1)
+        probabilities = torch.exp(log_probabilities)
+        target_probabilities = probabilities.gather(1, targets.unsqueeze(1)).squeeze(1)
+        cross_entropy = functional.nll_loss(
+            log_probabilities,
+            targets,
+            weight=self.weight,
+            reduction="none",
+        )
+        return ((1.0 - target_probabilities) ** self.gamma * cross_entropy).mean()
+
+
+def make_criterion(loss_type: str, class_weights, focal_gamma: float = 2.0):
+    from torch import nn
+
+    if loss_type == "weighted_cross_entropy":
+        return nn.CrossEntropyLoss(weight=class_weights)
+    if loss_type == "focal_loss":
+        return FocalLoss(weight=class_weights, gamma=focal_gamma)
+    raise ValueError(f"loss_type must be one of {LOSS_TYPES}, got {loss_type!r}")
 
 
 def make_grad_scaler(torch_module, amp_enabled: bool):
@@ -430,8 +516,8 @@ def train_image_baseline(config: TrainingConfig) -> dict[str, object]:
     import mlflow
     import mlflow.pytorch
     import torch
-    from torch import nn
 
+    validate_training_options(config)
     seed_everything(config.seed)
     configure_mlflow_auth()
     tracking_uri = resolve_tracking_uri(config.tracking_uri)
@@ -457,7 +543,7 @@ def train_image_baseline(config: TrainingConfig) -> dict[str, object]:
         dtype=torch.float32,
         device=device,
     )
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = make_criterion(config.loss_type, class_weights, config.focal_gamma)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=config.learning_rate,
@@ -498,7 +584,10 @@ def train_image_baseline(config: TrainingConfig) -> dict[str, object]:
                 "learning_rate": config.learning_rate,
                 "weight_decay": config.weight_decay,
                 "scheduler": "CosineAnnealingLR",
-                "loss": "weighted_cross_entropy",
+                "loss": config.loss_type,
+                "sampler": config.sampler,
+                "augment_strength": config.augment_strength,
+                "focal_gamma": config.focal_gamma,
                 "device": str(device),
                 "hf_dataset_repo": config.hf_dataset_repo or "",
                 "train_rows": len(inputs.train),
@@ -596,6 +685,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--experiment-name", default=DEFAULT_EXPERIMENT_NAME)
     parser.add_argument("--tracking-uri")
     parser.add_argument("--hf-dataset-repo")
+    parser.add_argument("--loss-type", choices=LOSS_TYPES, default="weighted_cross_entropy")
+    parser.add_argument("--sampler", choices=SAMPLERS, default="shuffle")
+    parser.add_argument("--augment-strength", choices=AUGMENT_STRENGTHS, default="current")
+    parser.add_argument("--focal-gamma", type=float, default=2.0)
     parser.add_argument(
         "--allow-cpu",
         action="store_true",
@@ -621,6 +714,10 @@ def main() -> None:
         tracking_uri=args.tracking_uri,
         hf_dataset_repo=args.hf_dataset_repo,
         require_gpu=not args.allow_cpu,
+        loss_type=args.loss_type,
+        sampler=args.sampler,
+        augment_strength=args.augment_strength,
+        focal_gamma=args.focal_gamma,
     )
     metrics = train_image_baseline(config)
     print(json.dumps(metrics, indent=2))

@@ -6,7 +6,10 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 
 - EDA notebook for PAD-UFES-20 metadata and images
 - Class balance, biopsy-rate, missingness, patient/lesion, and image-quality checks
+- Reusable image-only training CLI with DagsHub MLflow tracking
+- GitHub Actions CI and CPU/dev Docker packaging
 - Generated figures under `figures/`
+- AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
 
 ## Data
 
@@ -52,6 +55,32 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Run local checks:
+
+```bash
+python -m unittest discover -s tests -q
+python -m src.training.train_image_baseline --help
+python scripts/check_notebook_hygiene.py notebooks/colab-image-baseline.ipynb
+```
+
+## CI/CD And Docker
+
+This repository uses GitHub Actions for CI. The workflow runs unit tests, CLI
+smoke checks, source compilation, notebook hygiene checks, and a Docker smoke
+test. GPU training is intentionally not run in CI.
+
+Build and test the CPU/dev Docker image locally:
+
+```bash
+docker build -t mlops-teledermatology:dev .
+docker run --rm mlops-teledermatology:dev python -m unittest discover -s tests -q
+docker run --rm mlops-teledermatology:dev python -m src.training.train_image_baseline --help
+```
+
+The Docker image is for reproducibility, tests, and inference packaging. CUDA
+training images and Kubernetes manifests are deferred until the CPU container
+and inference workflow are stable.
 
 ## Notebooks
 
@@ -203,6 +232,66 @@ The notebook logs hyperparameters, split metadata, class weights, per-epoch
 validation metrics, final test metrics, reports, the best checkpoint, and a
 PyTorch model artifact.
 
+## Hyperparameter Sweeps
+
+Small sweeps should stay budget-conscious and MLflow-tracked. Preview the
+default trial plan without training:
+
+```bash
+python -m src.training.run_hparam_sweep \
+  --images-dir /content/pad_ufes_20/all_images \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/image_baseline \
+  --max-trials 8 \
+  --dry-run
+```
+
+Run the sweep in Colab with a GPU only after confirming DagsHub credentials:
+
+```bash
+python -m src.training.run_hparam_sweep \
+  --images-dir /content/pad_ufes_20/all_images \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/image_baseline \
+  --max-trials 8
+```
+
+Add `--retrain-best` only when you intentionally want one extra full training
+run after the sweep.
+
+## Clinical Metadata
+
+Metadata is useful enough to test, but it must be encoded carefully. The helper
+module `src.features.clinical_metadata` keeps leakage columns such as `biopsed`
+and `diagnostic` out of model inputs, uses complete fields first, and adds
+missing indicators for optional fields.
+
+Recommended ablations on the same patient-safe split:
+
+```text
+metadata-only baseline
+image-only baseline
+image + metadata multimodal baseline
+```
+
+Run the metadata-only baseline locally or in Colab:
+
+```bash
+python -m src.training.train_metadata_baseline \
+  --metadata-path /content/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/metadata_baseline
+```
+
+The first metadata-only smoke result is summarized in:
+
+```text
+reports/metadata_baseline_experiment.md
+```
+
+Keep metadata in the modeling path only if it improves high-risk recall or
+macro F1 without worsening rare-class behavior.
+
 ## Image Baseline Results
 
 The current Colab EfficientNet-B0 run is summarized in:
@@ -245,3 +334,16 @@ python -m src.inference.predict_image \
 
 The checkpoint is intentionally not committed to GitHub. Keep it in Google
 Drive, MLflow artifact storage, or a model registry.
+
+## Cloud Cost Guardrails
+
+AWS is optional for this project. If you use the new-account credits, use them
+only for one short Dockerized reproducibility exercise and terminate resources
+immediately afterward. See:
+
+```text
+docs/aws_cost_guardrails.md
+```
+
+Do not run EKS/Kubernetes on AWS for this project yet; use local Docker first,
+then consider ECS or a single short-lived EC2 instance for deployment practice.
