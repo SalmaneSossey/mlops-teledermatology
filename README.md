@@ -202,9 +202,11 @@ https://dagshub.com/<DAGSHUB_REPO_OWNER>/mlops-teledermatology.mlflow
 ```
 
 Before running the notebook, create or import the project on DagsHub, create a
-DagsHub access token, and store it in Colab Secrets as `DAGSHUB_TOKEN`. If your
-DagsHub username or repo owner is not `SalmaneSossey`, also set
-`DAGSHUB_USERNAME`, `DAGSHUB_REPO_OWNER`, or `DAGSHUB_MLFLOW_TRACKING_URI`.
+DagsHub access token, and store it in Colab Secrets as `DAGSHUB_TOKEN`. The
+notebook uses token-only MLflow auth by default. If your DagsHub repo owner is
+not `SalmaneSossey`, also set `DAGSHUB_REPO_OWNER` or
+`DAGSHUB_MLFLOW_TRACKING_URI`. If you prefer username/password-style auth, set
+`DAGSHUB_USERNAME` to your DagsHub username.
 
 The notebook logs hyperparameters, split metadata, class weights, per-epoch
 validation metrics, final test metrics, reports, the best checkpoint, and a
