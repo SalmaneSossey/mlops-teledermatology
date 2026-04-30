@@ -56,8 +56,8 @@ pip install -r requirements.txt
 ## Notebooks
 
 - `notebooks/pad-ufes-20-analysis.ipynb`: exploratory data analysis before preprocessing.
-- `notebooks/colab-image-baseline.ipynb`: Google Colab notebook for training
-  an image-only EfficientNet baseline on GPU.
+- `notebooks/colab-image-baseline.ipynb`: Google Colab launcher for the
+  reusable image-only EfficientNet training CLI.
 
 ## Preprocessing
 
@@ -163,26 +163,17 @@ hf download "$PAD_UFES20_HF_REPO_ID" --repo-type dataset --dry-run
 
 Open `notebooks/colab-image-baseline.ipynb` from GitHub in Google Colab and use
 a GPU runtime. The notebook clones this repository, regenerates patient-safe
-splits, trains an image-only baseline, writes checkpoint/report backups to
-Google Drive, and logs MLflow runs to DagsHub.
+splits from the Hugging Face dataset mirror, writes checkpoint/report backups to
+Google Drive, and launches the reusable training CLI:
 
-The completed baseline notebook used the raw PAD-UFES-20 data in Drive at:
-
-```text
-MyDrive/teledermatology-data/zr7vgbcyr2-1/
+```bash
+python -m src.training.train_image_baseline \
+  --images-dir /content/pad_ufes_20/all_images \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/image_baseline
 ```
 
-with:
-
-```text
-metadata.csv
-images/imgs_part_*.zip
-```
-
-The Colab notebook extracts the image ZIP files to the Colab runtime disk before
-training.
-
-For the next Colab run, prefer the Hugging Face mirror:
+The data preparation steps are:
 
 ```bash
 python -m src.data.download_pad_ufes_20 \
@@ -214,18 +205,24 @@ PyTorch model artifact.
 
 ## Image Baseline Results
 
-The first Colab EfficientNet-B0 run is summarized in:
+The current Colab EfficientNet-B0 run is summarized in:
 
 ```text
 reports/image_baseline_experiment.md
 ```
 
+Latest DagsHub MLflow run:
+
+```text
+https://dagshub.com/SalmaneSossey/mlops-teledermatology.mlflow/#/experiments/0/runs/4f185f85c76e497f94e429a568f03a04
+```
+
 The current test metrics are:
 
 ```text
-macro_f1: 0.6636
-balanced_accuracy: 0.6803
-high_risk_recall: 0.8293
+macro_f1: 0.6597
+balanced_accuracy: 0.6746
+high_risk_recall: 0.8232
 ```
 
 To inspect high-risk mistakes after a Colab run, execute this in Colab after
@@ -243,7 +240,7 @@ After training in Colab, use the saved checkpoint to score one image:
 ```bash
 python -m src.inference.predict_image \
   --checkpoint-path /content/drive/MyDrive/mlops-teledermatology/runs/image_baseline/efficientnet_b0_best.pt \
-  --image-path /content/pad_ufes_20_images/imgs_part_1/example.png
+  --image-path /content/pad_ufes_20/all_images/imgs_part_1/example.png
 ```
 
 The checkpoint is intentionally not committed to GitHub. Keep it in Google
