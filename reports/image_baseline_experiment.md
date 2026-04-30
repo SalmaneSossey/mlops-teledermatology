@@ -16,7 +16,7 @@ GPU runtime and PAD-UFES-20 data mounted from Google Drive.
 - Image size: 224 x 224
 - Loss: weighted cross entropy
 - Optimizer: AdamW
-- Tracking: MLflow file store on Google Drive
+- Tracking: MLflow file store on Google Drive for this historical run
 
 ## Data And Artifacts
 
@@ -48,6 +48,10 @@ MyDrive/mlops-teledermatology/runs/image_baseline/
 
 Do not commit `efficientnet_b0_best.pt` to GitHub. Keep model checkpoints in
 Drive, MLflow artifact storage, or a model registry.
+
+Future Colab runs should log MLflow metrics and artifacts directly to the
+project's DagsHub MLflow tracking server, with Google Drive kept as a checkpoint
+and report backup location.
 
 ## Split
 

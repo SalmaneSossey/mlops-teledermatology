@@ -119,8 +119,8 @@ dvc pull
 dvc push
 ```
 
-The downloaded ZIP, raw images, generated split files, MLflow tracking
-directory, and model checkpoints are intentionally not tracked directly by Git.
+The downloaded ZIP, raw images, generated split files, local MLflow tracking
+directories, and model checkpoints are intentionally not tracked directly by Git.
 Hugging Face local cache metadata under `data/raw/pad_ufes_20/.cache/` is also
 ignored by DVC so upload/download bookkeeping does not alter dataset hashes.
 
@@ -163,8 +163,8 @@ hf download "$PAD_UFES20_HF_REPO_ID" --repo-type dataset --dry-run
 
 Open `notebooks/colab-image-baseline.ipynb` from GitHub in Google Colab and use
 a GPU runtime. The notebook clones this repository, regenerates patient-safe
-splits, trains an image-only baseline, and writes checkpoints and metrics to
-Google Drive.
+splits, trains an image-only baseline, writes checkpoint/report backups to
+Google Drive, and logs MLflow runs to DagsHub.
 
 The completed baseline notebook used the raw PAD-UFES-20 data in Drive at:
 
@@ -195,15 +195,20 @@ python -m src.data.make_image_splits \
   --images-dir /content/pad_ufes_20/all_images
 ```
 
-The notebook also installs and uses MLflow with a Drive-backed tracking URI:
+The notebook uses DagsHub as the hosted MLflow tracking server:
 
 ```text
-MyDrive/mlops-teledermatology/mlruns/
+https://dagshub.com/<DAGSHUB_REPO_OWNER>/mlops-teledermatology.mlflow
 ```
 
-It logs hyperparameters, split metadata, class weights, per-epoch validation
-metrics, final test metrics, reports, the best checkpoint, and a PyTorch model
-artifact.
+Before running the notebook, create or import the project on DagsHub, create a
+DagsHub access token, and store it in Colab Secrets as `DAGSHUB_TOKEN`. If your
+DagsHub username or repo owner is not `SalmaneSossey`, also set
+`DAGSHUB_USERNAME`, `DAGSHUB_REPO_OWNER`, or `DAGSHUB_MLFLOW_TRACKING_URI`.
+
+The notebook logs hyperparameters, split metadata, class weights, per-epoch
+validation metrics, final test metrics, reports, the best checkpoint, and a
+PyTorch model artifact.
 
 ## Image Baseline Results
 
