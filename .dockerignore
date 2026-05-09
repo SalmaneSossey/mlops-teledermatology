@@ -1,5 +1,6 @@
 .git/
 .github/
+.dvc/
 .venv/
 .pytest_cache/
 __pycache__/

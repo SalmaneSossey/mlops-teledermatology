@@ -7,6 +7,7 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 - EDA notebook for PAD-UFES-20 metadata and images
 - Class balance, biopsy-rate, missingness, patient/lesion, and image-quality checks
 - Reusable image-only training CLI with DagsHub MLflow tracking
+- Metadata-only and image-plus-metadata baseline CLIs for ablation planning
 - GitHub Actions CI and CPU/dev Docker packaging
 - Generated figures under `figures/`
 - AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
@@ -61,6 +62,7 @@ Run local checks:
 ```bash
 python -m unittest discover -s tests -q
 python -m src.training.train_image_baseline --help
+python -m src.training.train_multimodal_baseline --help
 python scripts/check_notebook_hygiene.py notebooks/colab-image-baseline.ipynb
 ```
 
@@ -76,6 +78,7 @@ Build and test the CPU/dev Docker image locally:
 docker build -t mlops-teledermatology:dev .
 docker run --rm mlops-teledermatology:dev python -m unittest discover -s tests -q
 docker run --rm mlops-teledermatology:dev python -m src.training.train_image_baseline --help
+docker run --rm mlops-teledermatology:dev python -m src.training.train_multimodal_baseline --help
 ```
 
 The Docker image is for reproducibility, tests, and inference packaging. CUDA
@@ -86,7 +89,8 @@ and inference workflow are stable.
 
 - `notebooks/pad-ufes-20-analysis.ipynb`: exploratory data analysis before preprocessing.
 - `notebooks/colab-image-baseline.ipynb`: Google Colab launcher for the
-  reusable image-only EfficientNet training CLI.
+  reusable image-only EfficientNet training CLI, optional image sweep, and
+  optional image-plus-metadata baseline.
 
 ## Preprocessing
 
@@ -193,7 +197,9 @@ hf download "$PAD_UFES20_HF_REPO_ID" --repo-type dataset --dry-run
 Open `notebooks/colab-image-baseline.ipynb` from GitHub in Google Colab and use
 a GPU runtime. The notebook clones this repository, regenerates patient-safe
 splits from the Hugging Face dataset mirror, writes checkpoint/report backups to
-Google Drive, and launches the reusable training CLI:
+Google Drive, and launches the reusable image-only training CLI. It also includes
+guarded cells for the hyperparameter sweep and the first image-plus-metadata
+baseline:
 
 ```bash
 python -m src.training.train_image_baseline \
@@ -232,6 +238,10 @@ The notebook logs hyperparameters, split metadata, class weights, per-epoch
 validation metrics, final test metrics, reports, the best checkpoint, and a
 PyTorch model artifact.
 
+By default, `RUN_HPARAM_SWEEP` and `RUN_MULTIMODAL_BASELINE` are `False` so
+running all notebook cells does not accidentally start extra GPU jobs. Set either
+flag to `True` in the setup cell when you intentionally want that run.
+
 ## Hyperparameter Sweeps
 
 Small sweeps should stay budget-conscious and MLflow-tracked. Preview the
@@ -259,6 +269,12 @@ python -m src.training.run_hparam_sweep \
 Add `--retrain-best` only when you intentionally want one extra full training
 run after the sweep.
 
+The Colab sweep checklist and first multimodal baseline command are in:
+
+```text
+docs/colab_hparam_sweep.md
+```
+
 ## Clinical Metadata
 
 Metadata is useful enough to test, but it must be encoded carefully. The helper
@@ -281,6 +297,16 @@ python -m src.training.train_metadata_baseline \
   --metadata-path /content/pad_ufes_20/metadata.csv \
   --splits-dir data/processed/splits \
   --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/metadata_baseline
+```
+
+Run the first image-plus-metadata late-fusion baseline in Colab:
+
+```bash
+python -m src.training.train_multimodal_baseline \
+  --images-dir /content/pad_ufes_20/all_images \
+  --metadata-path /content/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/multimodal_baseline
 ```
 
 The first metadata-only smoke result is summarized in:

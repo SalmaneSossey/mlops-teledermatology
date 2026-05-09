@@ -32,6 +32,7 @@ jobs:
         run: |
           python -m src.training.train_image_baseline --help
           python -m src.training.train_metadata_baseline --help
+          python -m src.training.train_multimodal_baseline --help
 
       - name: Check hyperparameter sweep dry run
         run: |
@@ -70,4 +71,5 @@ jobs:
             --output-dir /tmp/run \
             --dry-run
           docker run --rm mlops-teledermatology:dev python -m src.training.train_metadata_baseline --help
+          docker run --rm mlops-teledermatology:dev python -m src.training.train_multimodal_baseline --help
           docker run --rm mlops-teledermatology:dev python -m src.inference.predict_image --help

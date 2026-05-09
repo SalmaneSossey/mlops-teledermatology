@@ -62,6 +62,7 @@ def evaluate_predictions(
     from sklearn.metrics import balanced_accuracy_score, classification_report, confusion_matrix, f1_score
 
     high_risk_indices = high_risk_label_indices(labels)
+    label_indices = list(range(len(labels)))
     metrics = {
         "test_macro_f1": float(f1_score(targets, predictions, average="macro", zero_division=0)),
         "test_balanced_accuracy": float(balanced_accuracy_score(targets, predictions)),
@@ -71,13 +72,14 @@ def evaluate_predictions(
         classification_report(
             targets,
             predictions,
+            labels=label_indices,
             target_names=list(labels),
             zero_division=0,
             output_dict=True,
         )
     ).T
     matrix = pd.DataFrame(
-        confusion_matrix(targets, predictions, labels=list(range(len(labels)))),
+        confusion_matrix(targets, predictions, labels=label_indices),
         index=labels,
         columns=labels,
     )
