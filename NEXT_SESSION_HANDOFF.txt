@@ -1,0 +1,88 @@
+MLOps Teledermatology - Next Session Handoff
+Date: 2026-05-20
+Workspace: /home/salmane/mlops-teledermatology
+
+Current State
+-------------
+- Branch: main
+- Docker services are running locally:
+  - FastAPI: http://localhost:8000
+  - FastAPI docs: http://localhost:8000/docs
+  - Streamlit: http://localhost:8501
+- Demo database was cleaned after smoke tests, so consultations start empty.
+- Local inference bundle exists under storage/model_bundle, but model artifacts stay out of Git.
+
+What Is Implemented
+-------------------
+1. Multimodal inference bundle
+   - Default MLflow/DagsHub run: ef084927bef741f996894b8a0fdd63e3
+   - Bundle builder downloads/copies checkpoint and serializes the clinical metadata encoder.
+   - Single-case predictor loads the local bundle and handles missing optional metadata.
+
+2. Telemedicine backend
+   - FastAPI API with JWT login.
+   - PostgreSQL via Docker Compose.
+   - Seeded demo users:
+     - patient@example.com / patient123
+     - doctor@example.com / doctor123
+     - admin@example.com / admin123
+   - Patient consultation creation, image upload, prediction.
+   - Doctor review/final decision.
+   - Admin dashboard summary.
+
+3. Streamlit client
+   - Patient page.
+   - Doctor review page.
+   - Admin page.
+   - Retraining candidate export.
+   - Monitoring dashboard.
+
+4. Feedback and monitoring
+   - Doctor-reviewed cases can be exported as retraining candidates.
+   - prediction_logs table records prediction latency/events.
+   - Admin monitoring endpoint reports prediction count, latency, risk/label distribution, review agreement, alerts, and recent events.
+
+5. Docker
+   - docker-compose.yml runs postgres, api, and streamlit.
+   - Dockerfile uses CPU PyTorch wheels for reproducible local inference.
+   - Runtime inference no longer downloads EfficientNet weights.
+
+Validation Already Run
+----------------------
+- python -m unittest discover -s tests -q
+  Result: 45 tests OK, 1 skipped.
+
+- python -m compileall -q src tests scripts
+  Result: OK.
+
+- docker compose build api streamlit
+  Result: OK.
+
+- docker compose up -d api streamlit
+  Result: OK.
+
+- Live smoke test:
+  patient login -> create consultation -> upload image -> predict -> doctor review -> admin monitoring/retraining export
+  Result: OK.
+
+Important Notes
+---------------
+- Keep raw data, local uploads, and model checkpoints out of Git.
+- DagsHub/MLflow is still the experiment/model tracking source.
+- The Streamlit app is fine for final-year demo, but a patient mobile app can be added later as a separate frontend that reuses the same FastAPI endpoints.
+- Segmentation is still deferred.
+
+Next Recommended Work
+---------------------
+1. Improve demo UX:
+   - image preview for doctor/admin
+   - probability table/bar chart
+   - cleaner case status display
+
+2. Prepare final presentation assets:
+   - architecture diagram
+   - screenshots of DagsHub, FastAPI docs, patient flow, doctor flow, admin monitoring
+   - database schema explanation
+
+3. Optional next feature:
+   - Expo/React Native patient mobile app using the existing FastAPI backend.

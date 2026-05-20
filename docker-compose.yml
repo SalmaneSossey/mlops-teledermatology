@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: telederm
+      POSTGRES_USER: telederm
+      POSTGRES_PASSWORD: telederm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telederm -d telederm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      TELEDERM_DATABASE_URL: postgresql+psycopg2://telederm:telederm@postgres:5432/telederm
+      TELEDERM_JWT_SECRET_KEY: ${TELEDERM_JWT_SECRET_KEY:-change-this-demo-secret}
+      TELEDERM_UPLOAD_DIR: /app/storage/uploads
+      TELEDERM_MODEL_BUNDLE_DIR: /app/storage/model_bundle
+      DAGSHUB_REPO_OWNER: ${DAGSHUB_REPO_OWNER:-SalmaneSossey}
+      DAGSHUB_REPO_NAME: ${DAGSHUB_REPO_NAME:-mlops-teledermatology}
+      DAGSHUB_MLFLOW_TRACKING_URI: ${DAGSHUB_MLFLOW_TRACKING_URI:-https://dagshub.com/SalmaneSossey/mlops-teledermatology.mlflow}
+      DAGSHUB_TOKEN: ${DAGSHUB_TOKEN:-}
+      DAGSHUB_USERNAME: ${DAGSHUB_USERNAME:-}
+    command: uvicorn src.app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  streamlit:
+    build: .
+    environment:
+      TELEDERM_API_URL: http://api:8000
+    command: streamlit run src/app/streamlit_client.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

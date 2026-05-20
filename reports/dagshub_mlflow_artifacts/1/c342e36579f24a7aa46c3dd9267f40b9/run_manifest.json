@@ -1,0 +1,58 @@
+{
+  "downloaded_artifacts": [
+    "class_weights.json",
+    "label_mapping.json",
+    "preprocessing_summary.json"
+  ],
+  "experiment_id": "1",
+  "experiment_name": "pad-ufes-20-image-baseline-hparam-sweep",
+  "metrics": {
+    "epoch": 3.0,
+    "learning_rate": 6.91341716182545e-05,
+    "seconds": 76.9,
+    "selection_score": 0.6241123725354172,
+    "train_balanced_acc": 0.6368894429751696,
+    "train_high_risk_recall": 0.8068331143232589,
+    "train_loss": 1.100437392049761,
+    "train_macro_f1": 0.5477234267501006,
+    "val_balanced_acc": 0.5630718341008865,
+    "val_high_risk_recall": 0.7439024390243902,
+    "val_loss": 1.163758946291973,
+    "val_macro_f1": 0.504322306046444
+  },
+  "params": {
+    "augment_strength": "current",
+    "batch_size": "32",
+    "device": "cuda",
+    "epochs": "8",
+    "focal_gamma": "2.0",
+    "hf_dataset_repo": "SalmaneExploring/pad-ufes-20",
+    "image_size": "224",
+    "learning_rate": "0.0001",
+    "loss": "weighted_cross_entropy",
+    "num_workers": "2",
+    "optimizer": "AdamW",
+    "sampler": "shuffle",
+    "scheduler": "CosineAnnealingLR",
+    "seed": "42",
+    "test_rows": "344",
+    "train_rows": "1608",
+    "val_rows": "346",
+    "weight_decay": "0.0001"
+  },
+  "run_id": "c342e36579f24a7aa46c3dd9267f40b9",
+  "run_name": "efficientnet_b0_20260518_162756",
+  "status": "FINISHED",
+  "tags": {
+    "backbone": "efficientnet_b0",
+    "mlflow.runName": "efficientnet_b0_20260518_162756",
+    "mlflow.source.git.commit": "84b9761dd16e08ce33d86d34f6e09d82b27665d2",
+    "mlflow.source.name": "/content/mlops-teledermatology/src/training/run_hparam_sweep.py",
+    "mlflow.source.type": "LOCAL",
+    "mlflow.user": "salmanesossey",
+    "model_family": "cnn",
+    "task": "pad_ufes_20_image_classification",
+    "tracking_backend": "dagshub_mlflow",
+    "triage_goal": "prioritize_high_risk_dermatology_cases"
+  }
+}

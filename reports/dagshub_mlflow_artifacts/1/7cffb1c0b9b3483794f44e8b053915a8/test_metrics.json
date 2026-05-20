@@ -1,0 +1,14 @@
+{
+  "test_macro_f1": 0.6126168186107334,
+  "test_balanced_accuracy": 0.6083897329782527,
+  "test_high_risk_recall": 0.7926829268292683,
+  "best_checkpoint": "/content/drive/MyDrive/mlops-teledermatology/runs/image_baseline/hparam_sweep/lr_1e-3/efficientnet_b0_best.pt",
+  "labels": [
+    "ACK",
+    "BCC",
+    "MEL",
+    "NEV",
+    "SCC",
+    "SEK"
+  ]
+}

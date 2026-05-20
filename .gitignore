@@ -17,6 +17,8 @@ data/processed/*
 !data/processed/*.dvc
 models/
 mlruns/
+storage/*
+!storage/.gitignore
 *.zip
 *.tar
 *.tar.gz
@@ -28,6 +30,7 @@ mlruns/
 # Local environment files
 .env
 .env.*
+!.env.example
 
 # OS/editor noise
 .DS_Store

@@ -1,0 +1,70 @@
+{
+  "split_ratio": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "seed": 42,
+  "image_transform_defaults": {
+    "mode": "RGB",
+    "resize": [
+      224,
+      224
+    ],
+    "normalize_pixel_values": true,
+    "augmentation": "train split only"
+  },
+  "splits": {
+    "test": {
+      "images": 344,
+      "patients": 206,
+      "class_counts": {
+        "ACK": 109,
+        "BCC": 127,
+        "MEL": 8,
+        "NEV": 36,
+        "SCC": 29,
+        "SEK": 35
+      },
+      "triage_priority_counts": {
+        "high": 164,
+        "low": 71,
+        "medium": 109
+      }
+    },
+    "train": {
+      "images": 1608,
+      "patients": 959,
+      "class_counts": {
+        "ACK": 511,
+        "BCC": 591,
+        "MEL": 36,
+        "NEV": 171,
+        "SCC": 134,
+        "SEK": 165
+      },
+      "triage_priority_counts": {
+        "high": 761,
+        "low": 336,
+        "medium": 511
+      }
+    },
+    "val": {
+      "images": 346,
+      "patients": 208,
+      "class_counts": {
+        "ACK": 110,
+        "BCC": 127,
+        "MEL": 8,
+        "NEV": 37,
+        "SCC": 29,
+        "SEK": 35
+      },
+      "triage_priority_counts": {
+        "high": 164,
+        "low": 72,
+        "medium": 110
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "downloaded_artifacts": [
+    "class_weights.json",
+    "classification_report.csv",
+    "confusion_matrix.csv",
+    "history.csv",
+    "label_mapping.json",
+    "preprocessing_summary.json",
+    "test_metrics.json"
+  ],
+  "experiment_id": "0",
+  "experiment_name": "pad-ufes-20-image-baseline",
+  "metrics": {
+    "epoch": 8.0,
+    "learning_rate": 0.0,
+    "seconds": 77.2,
+    "selection_score": 0.6928228205920648,
+    "test_balanced_accuracy": 0.6745986674290411,
+    "test_high_risk_recall": 0.823170731707317,
+    "test_macro_f1": 0.6597222760013458,
+    "train_balanced_acc": 0.9002969768211632,
+    "train_high_risk_recall": 0.9132720105124835,
+    "train_loss": 0.3085561881017922,
+    "train_macro_f1": 0.8726537436787986,
+    "val_balanced_acc": 0.6086133211574428,
+    "val_high_risk_recall": 0.8048780487804879,
+    "val_loss": 1.1238310750509273,
+    "val_macro_f1": 0.5807675924036418
+  },
+  "params": {
+    "batch_size": "32",
+    "device": "cuda",
+    "epochs": "8",
+    "hf_dataset_repo": "SalmaneExploring/pad-ufes-20",
+    "image_size": "224",
+    "learning_rate": "0.0003",
+    "loss": "weighted_cross_entropy",
+    "num_workers": "2",
+    "optimizer": "AdamW",
+    "scheduler": "CosineAnnealingLR",
+    "seed": "42",
+    "test_rows": "344",
+    "train_rows": "1608",
+    "val_rows": "346",
+    "weight_decay": "0.0001"
+  },
+  "run_id": "4f185f85c76e497f94e429a568f03a04",
+  "run_name": "efficientnet_b0_20260430_130259",
+  "status": "FINISHED",
+  "tags": {
+    "backbone": "efficientnet_b0",
+    "mlflow.runName": "efficientnet_b0_20260430_130259",
+    "mlflow.source.name": "fileId=https%3A%2F%2Fgithub.com%2FSalmaneSossey%2Fmlops-teledermatology%2Fblob%2Fmain%2Fnotebooks%2Fcolab-image-baseline.ipynb",
+    "mlflow.source.type": "NOTEBOOK",
+    "mlflow.user": "salmanesossey",
+    "model_family": "cnn",
+    "task": "pad_ufes_20_image_classification",
+    "tracking_backend": "dagshub_mlflow",
+    "triage_goal": "prioritize_high_risk_dermatology_cases"
+  }
+}

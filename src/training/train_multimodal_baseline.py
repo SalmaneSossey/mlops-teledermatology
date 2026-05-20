@@ -340,9 +340,10 @@ def build_multimodal_model(
     metadata_dropout: float = 0.1,
     initial_image_checkpoint: Path | None = None,
     device=None,
+    pretrained_image_weights: bool = True,
 ) -> EfficientNetMetadataFusion:
     require_torch()
-    image_model = build_model(num_classes=num_classes)
+    image_model = build_model(num_classes=num_classes, pretrained=pretrained_image_weights)
     if initial_image_checkpoint is not None:
         load_initial_checkpoint(image_model, initial_image_checkpoint, device or "cpu")
     return EfficientNetMetadataFusion(

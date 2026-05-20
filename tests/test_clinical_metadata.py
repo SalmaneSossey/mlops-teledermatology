@@ -70,6 +70,15 @@ class ClinicalMetadataTest(unittest.TestCase):
         self.assertEqual(float(train_encoded.loc[1, "diameter_1__missing"]), 1.0)
         self.assertEqual(float(test_encoded.iloc[0]["region____OTHER__"]), 1.0)
 
+    def test_encoder_round_trip_serialization_preserves_features(self):
+        encoder = fit_clinical_metadata_encoder(self.make_metadata())
+
+        restored = type(encoder).from_dict(encoder.to_dict())
+
+        self.assertEqual(restored.feature_names, encoder.feature_names)
+        self.assertEqual(restored.means, encoder.means)
+        self.assertEqual(restored.stds, encoder.stds)
+
     def test_missingness_summary_reports_optional_gaps(self):
         summary = metadata_missingness_summary(self.make_metadata())
         missing_rate = summary.set_index("feature").loc["gender", "missing_rate"]

@@ -1,0 +1,45 @@
+{
+  "downloaded_artifacts": [
+    "class_weights.json",
+    "label_mapping.json",
+    "preprocessing_summary.json"
+  ],
+  "experiment_id": "1",
+  "experiment_name": "pad-ufes-20-image-baseline-hparam-sweep",
+  "metrics": {},
+  "params": {
+    "augment_strength": "current",
+    "batch_size": "32",
+    "device": "cuda",
+    "epochs": "8",
+    "focal_gamma": "2.0",
+    "hf_dataset_repo": "SalmaneExploring/pad-ufes-20",
+    "image_size": "224",
+    "learning_rate": "0.0003",
+    "loss": "weighted_cross_entropy",
+    "num_workers": "2",
+    "optimizer": "AdamW",
+    "sampler": "shuffle",
+    "scheduler": "CosineAnnealingLR",
+    "seed": "42",
+    "test_rows": "344",
+    "train_rows": "1608",
+    "val_rows": "346",
+    "weight_decay": "0.0001"
+  },
+  "run_id": "2867227244064ffeb4cca47f50aea670",
+  "run_name": "efficientnet_b0_20260509_194002",
+  "status": "RUNNING",
+  "tags": {
+    "backbone": "efficientnet_b0",
+    "mlflow.runName": "efficientnet_b0_20260509_194002",
+    "mlflow.source.git.commit": "4623966013b8a6c369cebf2c6cccadd2e109560a",
+    "mlflow.source.name": "/content/mlops-teledermatology/src/training/run_hparam_sweep.py",
+    "mlflow.source.type": "LOCAL",
+    "mlflow.user": "salmanesossey",
+    "model_family": "cnn",
+    "task": "pad_ufes_20_image_classification",
+    "tracking_backend": "dagshub_mlflow",
+    "triage_goal": "prioritize_high_risk_dermatology_cases"
+  }
+}

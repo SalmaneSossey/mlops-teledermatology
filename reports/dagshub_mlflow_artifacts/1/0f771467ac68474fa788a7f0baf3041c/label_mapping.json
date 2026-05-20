@@ -1,0 +1,26 @@
+{
+  "label_to_index": {
+    "ACK": 0,
+    "BCC": 1,
+    "MEL": 2,
+    "NEV": 3,
+    "SCC": 4,
+    "SEK": 5
+  },
+  "index_to_label": {
+    "0": "ACK",
+    "1": "BCC",
+    "2": "MEL",
+    "3": "NEV",
+    "4": "SCC",
+    "5": "SEK"
+  },
+  "triage_priority": {
+    "MEL": "high",
+    "SCC": "high",
+    "BCC": "high",
+    "ACK": "medium",
+    "NEV": "low",
+    "SEK": "low"
+  }
+}

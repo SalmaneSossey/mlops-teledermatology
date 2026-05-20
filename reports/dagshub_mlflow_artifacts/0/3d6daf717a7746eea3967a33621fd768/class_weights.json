@@ -1,0 +1,19 @@
+{
+  "objective": "weighted_cross_entropy",
+  "class_weights": {
+    "ACK": 0.524462,
+    "BCC": 0.453469,
+    "MEL": 7.444444,
+    "NEV": 1.567251,
+    "SCC": 2.0,
+    "SEK": 1.624242
+  },
+  "train_class_counts": {
+    "ACK": 511,
+    "BCC": 591,
+    "MEL": 36,
+    "NEV": 171,
+    "SCC": 134,
+    "SEK": 165
+  }
+}

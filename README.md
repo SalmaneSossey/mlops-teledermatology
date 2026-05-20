@@ -8,6 +8,9 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 - Class balance, biopsy-rate, missingness, patient/lesion, and image-quality checks
 - Reusable image-only training CLI with DagsHub MLflow tracking
 - Metadata-only and image-plus-metadata baseline CLIs for ablation planning
+- FastAPI, PostgreSQL, JWT, and Streamlit telemedicine demo scaffold
+- Admin feedback export for doctor-reviewed retraining candidates
+- Lightweight monitoring for prediction latency, risk distribution, and review agreement
 - GitHub Actions CI and CPU/dev Docker packaging
 - Generated figures under `figures/`
 - AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
@@ -84,6 +87,16 @@ docker run --rm mlops-teledermatology:dev python -m src.training.train_multimoda
 The Docker image is for reproducibility, tests, and inference packaging. CUDA
 training images and Kubernetes manifests are deferred until the CPU container
 and inference workflow are stable.
+
+Run the database-backed telemedicine demo locally with PostgreSQL, FastAPI, and
+Streamlit:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+See `docs/telemedicine_app.md` for the model bundle build step and demo users.
 
 ## Notebooks
 
@@ -369,6 +382,26 @@ python -m src.inference.predict_image \
 
 The checkpoint is intentionally not committed to GitHub. Keep it in Google
 Drive, MLflow artifact storage, or a model registry.
+
+## Telemedicine App
+
+The current app workflow uses the best ISIC-initialized multimodal model as
+decision support inside a patient-to-doctor review flow. Build the local model
+bundle first:
+
+```bash
+python -m src.inference.build_multimodal_bundle \
+  --metadata-path data/raw/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir storage/model_bundle
+```
+
+Then start the API and client:
+
+```bash
+uvicorn src.app.main:app --reload
+streamlit run src/app/streamlit_client.py
+```
 
 ## Cloud Cost Guardrails
 

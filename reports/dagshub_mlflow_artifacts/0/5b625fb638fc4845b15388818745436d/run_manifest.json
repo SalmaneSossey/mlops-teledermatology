@@ -1,0 +1,17 @@
+{
+  "downloaded_artifacts": [],
+  "experiment_id": "0",
+  "experiment_name": "pad-ufes-20-image-baseline",
+  "metrics": {},
+  "params": {},
+  "run_id": "5b625fb638fc4845b15388818745436d",
+  "run_name": "efficientnet_b0_20260509_193954",
+  "status": "RUNNING",
+  "tags": {
+    "mlflow.runName": "efficientnet_b0_20260509_193954",
+    "mlflow.source.git.commit": "4623966013b8a6c369cebf2c6cccadd2e109560a",
+    "mlflow.source.name": "/content/mlops-teledermatology/src/training/train_image_baseline.py",
+    "mlflow.source.type": "LOCAL",
+    "mlflow.user": "salmanesossey"
+  }
+}

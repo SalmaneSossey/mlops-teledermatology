@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -136,6 +137,41 @@ class ClinicalMetadataEncoder:
             encoded[f"{field}__{OTHER_TOKEN}"] = (~values.isin(known)).astype(float)
 
         return encoded[self.feature_names]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "numeric_fields": list(self.numeric_fields),
+            "optional_numeric_fields": list(self.optional_numeric_fields),
+            "categorical_levels": {
+                field: list(levels)
+                for field, levels in self.categorical_levels.items()
+            },
+            "optional_categorical_fields": list(self.optional_categorical_fields),
+            "means": self.means,
+            "stds": self.stds,
+            "feature_names": self.feature_names,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> "ClinicalMetadataEncoder":
+        return cls(
+            numeric_fields=tuple(payload["numeric_fields"]),
+            optional_numeric_fields=tuple(payload["optional_numeric_fields"]),
+            categorical_levels={
+                str(field): tuple(levels)
+                for field, levels in dict(payload["categorical_levels"]).items()
+            },
+            optional_categorical_fields=tuple(payload["optional_categorical_fields"]),
+            means={str(field): float(value) for field, value in dict(payload["means"]).items()},
+            stds={str(field): float(value) for field, value in dict(payload["stds"]).items()},
+        )
+
+    def save(self, path: Path) -> None:
+        path.write_text(json.dumps(self.to_dict(), indent=2) + "\n")
+
+    @classmethod
+    def load(cls, path: Path) -> "ClinicalMetadataEncoder":
+        return cls.from_dict(json.loads(path.read_text()))
 
 
 def fit_clinical_metadata_encoder(

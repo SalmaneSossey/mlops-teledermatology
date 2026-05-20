@@ -1,0 +1,17 @@
+{
+  "test_macro_f1": 0.6382732732620601,
+  "test_balanced_accuracy": 0.6363158100966578,
+  "test_high_risk_recall": 0.8658536585365854,
+  "test_selection_score": 0.7520634658993227,
+  "best_checkpoint": "/content/drive/MyDrive/mlops-teledermatology/runs/multimodal_baseline/efficientnet_b0_multimodal_best.pt",
+  "labels": [
+    "ACK",
+    "BCC",
+    "MEL",
+    "NEV",
+    "SCC",
+    "SEK"
+  ],
+  "metadata_feature_count": 69,
+  "model": "efficientnet_b0_metadata_fusion"
+}
