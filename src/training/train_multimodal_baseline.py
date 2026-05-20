@@ -38,6 +38,7 @@ from src.training.train_image_baseline import (
     build_model,
     configure_mlflow_auth,
     high_risk_label_indices,
+    load_initial_checkpoint,
     load_split_inputs,
     log_model_compat,
     make_criterion,
@@ -112,6 +113,7 @@ class MultimodalTrainingConfig:
     metadata_hidden_dim: int = 64
     fusion_hidden_dim: int = 256
     metadata_dropout: float = 0.1
+    initial_image_checkpoint: Path | None = None
 
 
 class EfficientNetMetadataFusion(nn.Module):
@@ -177,10 +179,11 @@ class PadUfesMultimodalDataset:
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
-        metadata_features = torch_module.as_tensor(
-            self.metadata_features.iloc[index].to_numpy(dtype=np.float32),
-            dtype=torch_module.float32,
+        metadata_array = self.metadata_features.iloc[index].to_numpy(
+            dtype=np.float32,
+            copy=True,
         )
+        metadata_features = torch_module.as_tensor(metadata_array, dtype=torch_module.float32)
         label = int(row["label_idx"])
         return image, metadata_features, label
 
@@ -335,9 +338,13 @@ def build_multimodal_model(
     metadata_hidden_dim: int = 64,
     fusion_hidden_dim: int = 256,
     metadata_dropout: float = 0.1,
+    initial_image_checkpoint: Path | None = None,
+    device=None,
 ) -> EfficientNetMetadataFusion:
     require_torch()
     image_model = build_model(num_classes=num_classes)
+    if initial_image_checkpoint is not None:
+        load_initial_checkpoint(image_model, initial_image_checkpoint, device or "cpu")
     return EfficientNetMetadataFusion(
         image_model=image_model,
         metadata_feature_count=metadata_feature_count,
@@ -508,6 +515,8 @@ def train_multimodal_baseline(config: MultimodalTrainingConfig) -> dict[str, obj
         metadata_hidden_dim=config.metadata_hidden_dim,
         fusion_hidden_dim=config.fusion_hidden_dim,
         metadata_dropout=config.metadata_dropout,
+        initial_image_checkpoint=config.initial_image_checkpoint,
+        device=device,
     ).to(device)
     class_weights = torch_module.tensor(
         [
@@ -569,6 +578,7 @@ def train_multimodal_baseline(config: MultimodalTrainingConfig) -> dict[str, obj
                 "metadata_hidden_dim": config.metadata_hidden_dim,
                 "fusion_hidden_dim": config.fusion_hidden_dim,
                 "metadata_dropout": config.metadata_dropout,
+                "initial_image_checkpoint": str(config.initial_image_checkpoint or ""),
                 "train_rows": len(inputs.train),
                 "val_rows": len(inputs.val),
                 "test_rows": len(inputs.test),
@@ -646,6 +656,8 @@ def train_multimodal_baseline(config: MultimodalTrainingConfig) -> dict[str, obj
             metadata_hidden_dim=config.metadata_hidden_dim,
             fusion_hidden_dim=config.fusion_hidden_dim,
             metadata_dropout=config.metadata_dropout,
+            initial_image_checkpoint=config.initial_image_checkpoint,
+            device=device,
         ).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
         return evaluate_multimodal_and_log(model, test_loader, device, inputs, paths)
@@ -677,6 +689,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--metadata-hidden-dim", type=int, default=64)
     parser.add_argument("--fusion-hidden-dim", type=int, default=256)
     parser.add_argument("--metadata-dropout", type=float, default=0.1)
+    parser.add_argument(
+        "--initial-image-checkpoint",
+        type=Path,
+        help="Optional EfficientNet image checkpoint to initialize the fusion backbone.",
+    )
     parser.add_argument(
         "--complete-fields-only",
         action="store_true",
@@ -716,6 +733,7 @@ def main() -> None:
         metadata_hidden_dim=args.metadata_hidden_dim,
         fusion_hidden_dim=args.fusion_hidden_dim,
         metadata_dropout=args.metadata_dropout,
+        initial_image_checkpoint=args.initial_image_checkpoint,
     )
     metrics = train_multimodal_baseline(config)
     print(json.dumps(metrics, indent=2))

@@ -66,6 +66,7 @@ class TrainingConfig:
     sampler: str = "shuffle"
     augment_strength: str = "current"
     focal_gamma: float = 2.0
+    initial_checkpoint: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -341,6 +342,15 @@ def build_model(num_classes: int):
     return model
 
 
+def load_initial_checkpoint(model, checkpoint_path: Path, device):
+    import torch
+
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state_dict = checkpoint.get("model_state_dict", checkpoint)
+    model.load_state_dict(state_dict)
+    return checkpoint
+
+
 class FocalLoss:
     def __init__(self, weight=None, gamma: float = 2.0):
         self.weight = weight
@@ -535,6 +545,8 @@ def train_image_baseline(config: TrainingConfig) -> dict[str, object]:
 
     train_loader, val_loader, test_loader = build_dataloaders(inputs, config, device)
     model = build_model(num_classes=len(inputs.labels)).to(device)
+    if config.initial_checkpoint is not None:
+        load_initial_checkpoint(model, config.initial_checkpoint, device)
     class_weights = torch.tensor(
         [
             inputs.class_weight_payload["class_weights"][label]
@@ -588,6 +600,7 @@ def train_image_baseline(config: TrainingConfig) -> dict[str, object]:
                 "sampler": config.sampler,
                 "augment_strength": config.augment_strength,
                 "focal_gamma": config.focal_gamma,
+                "initial_checkpoint": str(config.initial_checkpoint or ""),
                 "device": str(device),
                 "hf_dataset_repo": config.hf_dataset_repo or "",
                 "train_rows": len(inputs.train),
@@ -690,6 +703,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--augment-strength", choices=AUGMENT_STRENGTHS, default="current")
     parser.add_argument("--focal-gamma", type=float, default=2.0)
     parser.add_argument(
+        "--initial-checkpoint",
+        type=Path,
+        help="Optional EfficientNet checkpoint to initialize training from.",
+    )
+    parser.add_argument(
         "--allow-cpu",
         action="store_true",
         help="Allow training without CUDA. Intended for smoke tests only.",
@@ -718,6 +736,7 @@ def main() -> None:
         sampler=args.sampler,
         augment_strength=args.augment_strength,
         focal_gamma=args.focal_gamma,
+        initial_checkpoint=args.initial_checkpoint,
     )
     metrics = train_image_baseline(config)
     print(json.dumps(metrics, indent=2))

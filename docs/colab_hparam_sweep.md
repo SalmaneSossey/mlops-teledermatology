@@ -3,7 +3,9 @@
 Use this runbook only after the image-only baseline and GitHub Actions checks are
 green. Keep GPU runs small, MLflow-tracked, and backed up to Google Drive. These
 steps are also integrated into `notebooks/colab-image-baseline.ipynb` behind the
-`RUN_HPARAM_SWEEP` and `RUN_MULTIMODAL_BASELINE` flags.
+`RUN_IMAGE_BASELINE`, `RUN_HPARAM_SWEEP`, and `RUN_MULTIMODAL_BASELINE` flags.
+The notebook is currently prepared for the next multimodal run, with image-only
+and sweep runs disabled and multimodal training enabled.
 
 ## Preconditions
 

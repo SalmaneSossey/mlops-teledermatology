@@ -238,9 +238,11 @@ The notebook logs hyperparameters, split metadata, class weights, per-epoch
 validation metrics, final test metrics, reports, the best checkpoint, and a
 PyTorch model artifact.
 
-By default, `RUN_HPARAM_SWEEP` and `RUN_MULTIMODAL_BASELINE` are `False` so
-running all notebook cells does not accidentally start extra GPU jobs. Set either
-flag to `True` in the setup cell when you intentionally want that run.
+The checked-in Colab launcher is currently prepared for the next missing
+experiment: `RUN_IMAGE_BASELINE = False`, `RUN_HPARAM_SWEEP = False`, and
+`RUN_MULTIMODAL_BASELINE = True`. Running all cells will skip the image-only
+baseline and start the image-plus-metadata baseline after the data, DagsHub, and
+GPU checks pass. Flip the flags in the setup cell when you want a different run.
 
 ## Hyperparameter Sweeps
 
@@ -273,6 +275,13 @@ The Colab sweep checklist and first multimodal baseline command are in:
 
 ```text
 docs/colab_hparam_sweep.md
+```
+
+External ISIC 2019 image pretraining, used to test whether more dermatology
+images improve PAD-UFES-20 SCC/MEL behavior, is documented in:
+
+```text
+docs/external_isic_pretraining.md
 ```
 
 ## Clinical Metadata
