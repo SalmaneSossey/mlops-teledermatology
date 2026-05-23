@@ -9,6 +9,7 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 - Reusable image-only training CLI with DagsHub MLflow tracking
 - Metadata-only and image-plus-metadata baseline CLIs for ablation planning
 - FastAPI, PostgreSQL, JWT, and Streamlit telemedicine demo scaffold
+- Expo patient mobile app for camera/gallery case submission and patient history
 - Admin feedback export for doctor-reviewed retraining candidates
 - Lightweight monitoring for prediction latency, risk distribution, and review agreement
 - GitHub Actions CI and CPU/dev Docker packaging
@@ -98,17 +99,31 @@ docker compose up --build
 
 See `docs/telemedicine_app.md` for the model bundle build step and demo users.
 
-Run the Expo patient mobile app after the API is reachable from your phone or
-emulator:
+## Patient Mobile App
+
+The Expo patient app lives in `apps/mobile` and uses the FastAPI backend for
+patient login, case creation, image upload, prediction, and patient history.
+
+For an Android emulator, start the backend and point Expo at the host alias:
 
 ```bash
 cd apps/mobile
 npm install
-EXPO_PUBLIC_TELEDERM_API_URL=http://<computer-lan-ip>:8000 npm start
+EXPO_PUBLIC_TELEDERM_API_URL=http://10.0.2.2:8000 npx expo start --android
 ```
 
-For WSL2 plus a physical Android phone, follow `Run_mobile_app.md` to avoid
-LAN, firewall, and stale Expo tunnel issues.
+For a physical phone on a normal LAN, use your computer's reachable LAN IP:
+
+```bash
+cd apps/mobile
+npm install
+EXPO_PUBLIC_TELEDERM_API_URL=http://<computer-lan-ip>:8000 npx expo start --lan
+```
+
+For WSL2 plus a physical Android phone, follow `Run_mobile_app.md`. That
+runbook uses `localtunnel` for the FastAPI backend and Expo tunnel mode for the
+Metro bundle, which avoids the WSL2/Windows firewall issues that can make Expo
+Go spin indefinitely.
 
 ## Notebooks
 
