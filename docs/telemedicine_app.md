@@ -57,6 +57,23 @@ doctor@example.com / doctor123
 admin@example.com / admin123
 ```
 
+## Patient Mobile App
+
+The Expo patient app lives in `apps/mobile`. Use a LAN-reachable API URL for
+physical-phone demos:
+
+```bash
+cd apps/mobile
+npm install
+EXPO_PUBLIC_TELEDERM_API_URL=http://<computer-lan-ip>:8000 npm start
+```
+
+For Android emulator-only testing, `http://10.0.2.2:8000` can usually reach the
+host FastAPI service. The mobile app uses the seeded patient demo account and
+supports case creation, camera/gallery upload, prediction, and patient history.
+For WSL2 plus a physical Android phone, use the repository-level
+`Run_mobile_app.md` runbook.
+
 ## Clinical Boundary
 
 The prediction is stored as decision support only. The final clinical decision is

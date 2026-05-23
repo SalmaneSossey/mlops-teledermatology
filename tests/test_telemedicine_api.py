@@ -10,7 +10,8 @@ from sqlalchemy.orm import sessionmaker
 
 from src.app.database import Base, get_db, make_engine
 from src.app.main import app
-from src.app.models import ModelVersion
+from src.app.models import Consultation, ModelVersion, PatientProfile, User
+from src.app.security import hash_password
 from src.app.seed import seed_demo_users
 
 
@@ -168,6 +169,12 @@ class TelemedicineApiTest(unittest.TestCase):
         self.assertEqual(prediction.json()["predicted_label"], "BCC")
         self.assertEqual(prediction.json()["risk_level"], "high")
 
+        history = self.client.get("/patient/consultations/history", headers=patient_headers)
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual(history.json()[0]["consultation"]["id"], consultation_id)
+        self.assertEqual(history.json()[0]["latest_prediction"]["predicted_label"], "BCC")
+        self.assertEqual(history.json()[0]["latest_prediction"]["risk_level"], "high")
+
         queue = self.client.get("/doctor/consultations", headers=doctor_headers)
         self.assertEqual(queue.status_code, 200, queue.text)
         self.assertEqual(queue.json()[0]["latest_prediction"]["predicted_label"], "BCC")
@@ -216,6 +223,49 @@ class TelemedicineApiTest(unittest.TestCase):
         self.assertEqual(monitoring_payload["review_agreement_rate"], 1.0)
         self.assertEqual(monitoring_payload["disagreement_count"], 0)
         self.assertEqual(monitoring_payload["recent_predictions"][0]["model_run_id"], "test-run")
+
+    def test_patient_history_only_returns_logged_in_patient_cases(self):
+        primary_headers = self.login("patient@example.com", "patient123")
+        with self.Session() as db:
+            second_user = User(
+                email="second-patient@example.com",
+                hashed_password=hash_password("patient123"),
+                role="patient",
+            )
+            second_profile = PatientProfile(
+                user=second_user,
+                display_name="Second Patient",
+                age=44,
+                gender="FEMALE",
+            )
+            db.add(second_profile)
+            db.commit()
+            db.refresh(second_profile)
+            db.add(
+                Consultation(
+                    patient_id=second_profile.id,
+                    status="draft",
+                    symptoms_notes="Other patient case",
+                    clinical_metadata={"region": "ARM"},
+                )
+            )
+            db.commit()
+
+        own_case = self.client.post(
+            "/patient/consultations",
+            headers=primary_headers,
+            json={
+                "symptoms_notes": "My visible case",
+                "clinical_metadata": {"region": "FACE"},
+            },
+        )
+        self.assertEqual(own_case.status_code, 200, own_case.text)
+
+        history = self.client.get("/patient/consultations/history", headers=primary_headers)
+
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual(len(history.json()), 1)
+        self.assertEqual(history.json()[0]["consultation"]["symptoms_notes"], "My visible case")
 
 
 if __name__ == "__main__":

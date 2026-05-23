@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Telederm Patient",
+    "slug": "telederm-patient",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.telederm.patient",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Capture a lesion image for teledermatology prediction.",
+        "NSPhotoLibraryUsageDescription": "Select a lesion image for teledermatology prediction."
+      }
+    },
+    "android": {
+      "package": "com.telederm.patient",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}

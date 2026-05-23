@@ -102,6 +102,13 @@ class DoctorConsultationResponse(BaseModel):
     latest_review: ReviewResponse | None = None
 
 
+class PatientConsultationHistoryResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    consultation: ConsultationResponse
+    latest_prediction: PredictionResponse | None = None
+
+
 class UserSummaryResponse(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 

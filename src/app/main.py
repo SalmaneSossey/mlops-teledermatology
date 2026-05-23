@@ -12,6 +12,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -37,6 +38,7 @@ from src.app.schemas import (
     ModelCurrentResponse,
     MonitoringRecentPredictionResponse,
     MonitoringSummaryResponse,
+    PatientConsultationHistoryResponse,
     PredictionResponse,
     RetrainingCaseResponse,
     ReviewCreate,
@@ -50,6 +52,13 @@ from src.inference.build_multimodal_bundle import build_multimodal_bundle
 from src.inference.predict_multimodal import MultimodalPredictor
 
 app = FastAPI(title="MLOps Teledermatology Demo API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
@@ -141,6 +150,19 @@ def latest_prediction_response(prediction: ModelPrediction | None) -> Prediction
         probabilities=prediction.probabilities,
         model_run_id=prediction.model_version.run_id,
         warning=prediction.warning,
+    )
+
+
+def patient_history_response(db: Session, consultation: Consultation) -> PatientConsultationHistoryResponse:
+    latest_prediction = (
+        db.query(ModelPrediction)
+        .filter(ModelPrediction.consultation_id == consultation.id)
+        .order_by(ModelPrediction.created_at.desc())
+        .first()
+    )
+    return PatientConsultationHistoryResponse(
+        consultation=consultation,
+        latest_prediction=latest_prediction_response(latest_prediction),
     )
 
 
@@ -442,6 +464,21 @@ def list_patient_consultations(
         .order_by(Consultation.created_at.desc())
         .all()
     )
+
+
+@app.get("/patient/consultations/history", response_model=list[PatientConsultationHistoryResponse])
+def list_patient_consultation_history(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("patient")),
+) -> list[PatientConsultationHistoryResponse]:
+    patient = get_patient_profile(db, user)
+    consultations = (
+        db.query(Consultation)
+        .filter(Consultation.patient_id == patient.id)
+        .order_by(Consultation.created_at.desc())
+        .all()
+    )
+    return [patient_history_response(db, consultation) for consultation in consultations]
 
 
 @app.post("/patient/consultations/{consultation_id}/image", response_model=ImageResponse)

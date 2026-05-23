@@ -98,6 +98,18 @@ docker compose up --build
 
 See `docs/telemedicine_app.md` for the model bundle build step and demo users.
 
+Run the Expo patient mobile app after the API is reachable from your phone or
+emulator:
+
+```bash
+cd apps/mobile
+npm install
+EXPO_PUBLIC_TELEDERM_API_URL=http://<computer-lan-ip>:8000 npm start
+```
+
+For WSL2 plus a physical Android phone, follow `Run_mobile_app.md` to avoid
+LAN, firewall, and stale Expo tunnel issues.
+
 ## Notebooks
 
 - `notebooks/pad-ufes-20-analysis.ipynb`: exploratory data analysis before preprocessing.
