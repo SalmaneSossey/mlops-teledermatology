@@ -1,23 +1,23 @@
 MLOps Teledermatology - Next Session Handoff
-Date: 2026-05-20
+Date: 2026-05-23
 Workspace: /home/salmane/mlops-teledermatology
 
-Current State
--------------
+Repository State
+----------------
 - Branch: main
-- Docker services are running locally:
-  - FastAPI: http://localhost:8000
-  - FastAPI docs: http://localhost:8000/docs
-  - Streamlit: http://localhost:8501
-- Demo database was cleaned after smoke tests, so consultations start empty.
-- Local inference bundle exists under storage/model_bundle, but model artifacts stay out of Git.
+- Remote: origin/main
+- Latest commit pushed: f36718a Add patient mobile app
+- Working tree at end of session: clean
+- Docker Compose services were stopped with `docker compose down`.
+- Expo/Metro and localtunnel processes were stopped.
 
-What Is Implemented
--------------------
+Current Product State
+---------------------
 1. Multimodal inference bundle
    - Default MLflow/DagsHub run: ef084927bef741f996894b8a0fdd63e3
    - Bundle builder downloads/copies checkpoint and serializes the clinical metadata encoder.
    - Single-case predictor loads the local bundle and handles missing optional metadata.
+   - Local inference bundle is expected under `storage/model_bundle`; model artifacts stay out of Git.
 
 2. Telemedicine backend
    - FastAPI API with JWT login.
@@ -27,8 +27,10 @@ What Is Implemented
      - doctor@example.com / doctor123
      - admin@example.com / admin123
    - Patient consultation creation, image upload, prediction.
-   - Doctor review/final decision.
-   - Admin dashboard summary.
+   - Patient history endpoint: `GET /patient/consultations/history`.
+   - CORS is enabled for local/mobile demos.
+   - Doctor consultation queue, review, and final decision.
+   - Admin dashboard summary, monitoring, and retraining export.
 
 3. Streamlit client
    - Patient page.
@@ -37,52 +39,119 @@ What Is Implemented
    - Retraining candidate export.
    - Monitoring dashboard.
 
-4. Feedback and monitoring
+4. Expo patient mobile app
+   - App path: `apps/mobile`.
+   - Runbook path: `Run_mobile_app.md`.
+   - Expo SDK: 56.
+   - Expo Go on the Android phone must support SDK 56.
+   - Features implemented:
+     - patient login
+     - secure token storage
+     - new case form
+     - camera/gallery image selection
+     - metadata capture, including Fitzpatrick skin type
+     - native multipart image upload using `expo-file-system/legacy`
+     - prediction request
+     - patient history tab
+     - profile/logout tab
+
+5. Feedback and monitoring
    - Doctor-reviewed cases can be exported as retraining candidates.
-   - prediction_logs table records prediction latency/events.
+   - `prediction_logs` table records prediction latency/events.
    - Admin monitoring endpoint reports prediction count, latency, risk/label distribution, review agreement, alerts, and recent events.
 
-5. Docker
-   - docker-compose.yml runs postgres, api, and streamlit.
+6. Docker
+   - `docker-compose.yml` runs postgres, api, and streamlit.
    - Dockerfile uses CPU PyTorch wheels for reproducible local inference.
    - Runtime inference no longer downloads EfficientNet weights.
 
 Validation Already Run
 ----------------------
-- python -m unittest discover -s tests -q
-  Result: 45 tests OK, 1 skipped.
+- `npm run typecheck`
+  - Result: OK.
 
-- python -m compileall -q src tests scripts
-  Result: OK.
+- `PYTHONPATH=. pytest tests/test_telemedicine_api.py`
+  - Result: 5 passed.
+  - Warnings only: python-multipart import deprecation, passlib crypt deprecation, FastAPI `on_event` deprecation.
 
-- docker compose build api streamlit
-  Result: OK.
+- `PYTHONPATH=. python -m unittest discover -s tests -q`
+  - Result: 46 tests OK, 1 skipped.
 
-- docker compose up -d api streamlit
-  Result: OK.
+- `PYTHONPATH=. python -m compileall -q src tests scripts`
+  - Result: OK.
 
-- Live smoke test:
-  patient login -> create consultation -> upload image -> predict -> doctor review -> admin monitoring/retraining export
-  Result: OK.
+- `git diff --check`
+  - Result: OK before commit.
+
+Mobile Demo Lessons From 2026-05-23
+-----------------------------------
+- The phone could load Expo only reliably through Expo tunnel mode.
+- Expo LAN mode can spin forever from WSL2 because the QR points at `192.168.0.105:8081`, and the phone may not reach the WSL2 Metro server through Windows networking/firewall.
+- The FastAPI backend inside Docker worked locally at `http://localhost:8000/docs`, but the phone could not reach `http://192.168.0.105:8000`.
+- The working pattern was:
+  1. Start Docker backend.
+  2. Start `localtunnel` for backend port 8000.
+  3. Start Expo with `EXPO_PUBLIC_TELEDERM_API_URL=<localtunnel-url>` and `--tunnel --clear`.
+- Do not type `https://https://...`; that caused Android to fail with `UnknownHostException` for host `"https"`.
+- `localtunnel` URLs change between sessions. Always copy the fresh URL.
+- Keep the `localtunnel` terminal open while using the phone app.
+- The `SafeAreaView has been deprecated` warning is harmless for the demo.
+- Old React Native FormData object upload failed with `Unsupported FormDataPart implementation`.
+- Reading the picked image with `fetch(image.uri)` failed with `Could not read the selected image`.
+- Current mobile upload uses `expo-file-system/legacy` multipart upload instead.
+
+Next Mobile Run
+---------------
+Use `Run_mobile_app.md` first. Short version:
+
+Terminal 1, repo root:
+
+```bash
+docker compose up -d api postgres
+npx --yes localtunnel --port 8000
+```
+
+Terminal 2, mobile app:
+
+```bash
+cd apps/mobile
+npm install
+EXPO_PUBLIC_TELEDERM_API_URL=<fresh-localtunnel-url> npx expo start --tunnel --clear
+```
+
+Then fully close Expo Go on the phone, reopen it, scan the fresh QR, and login:
+
+```text
+patient@example.com
+patient123
+```
 
 Important Notes
 ---------------
-- Keep raw data, local uploads, and model checkpoints out of Git.
+- Keep raw data, local uploads, local databases, local Expo state, `node_modules`, and model checkpoints out of Git.
+- `.gitignore` now ignores `node_modules/` and `.expo/`.
 - DagsHub/MLflow is still the experiment/model tracking source.
-- The Streamlit app is fine for final-year demo, but a patient mobile app can be added later as a separate frontend that reuses the same FastAPI endpoints.
 - Segmentation is still deferred.
+- This is clinical decision support only, not medical advice.
+- If testing on a real wound/skin injury, do not rely on the app. Escalate to a clinician for pain, bleeding, spreading redness, pus, fever, worsening lesion, or non-healing skin.
 
 Next Recommended Work
 ---------------------
-1. Improve demo UX:
+1. Verify the new `expo-file-system/legacy` upload path on the physical phone.
+   - Expected flow: login -> create case -> choose camera/gallery image -> submit and predict -> see result -> history tab shows latest prediction.
+
+2. Improve mobile UX after the upload is confirmed:
+   - replace deprecated `SafeAreaView` with `react-native-safe-area-context`
+   - clearer loading state during upload/prediction
+   - friendlier validation for metadata and required image
+   - show current API mode/debug URL somewhere optional for demos
+
+3. Improve demo UX across clients:
    - image preview for doctor/admin
    - probability table/bar chart
    - cleaner case status display
 
-2. Prepare final presentation assets:
+4. Prepare final presentation assets:
    - architecture diagram
-   - screenshots of DagsHub, FastAPI docs, patient flow, doctor flow, admin monitoring
+   - screenshots of DagsHub, FastAPI docs, patient mobile flow, doctor flow, admin monitoring
    - database schema explanation
-
-3. Optional next feature:
-   - Expo/React Native patient mobile app using the existing FastAPI backend.
