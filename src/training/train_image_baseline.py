@@ -21,7 +21,7 @@ HIGH_RISK_LABELS = ["BCC", "MEL", "SCC"]
 DEFAULT_EXPERIMENT_NAME = "pad-ufes-20-image-baseline"
 LOSS_TYPES = ["weighted_cross_entropy", "focal_loss"]
 SAMPLERS = ["shuffle", "weighted_random"]
-AUGMENT_STRENGTHS = ["current", "mild"]
+AUGMENT_STRENGTHS = ["current", "mild", "class_aware"]
 
 
 @dataclass(frozen=True)
@@ -90,12 +90,36 @@ class PadUfesImageDataset:
         from PIL import Image
 
         row = self.frame.iloc[index]
-        image_path = self.images_dir / row["image_rel_path"]
+        image_path = resolve_manifest_image_path(row, self.images_dir)
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
-            image = self.transform(image)
+            image = apply_image_transform(self.transform, image, row)
         label = int(row["label_idx"])
         return image, label
+
+
+def resolve_manifest_image_path(row, images_dir: Path) -> Path:
+    """Resolve image paths from portable split manifests and feedback manifests."""
+    image_path_value = row.get("image_path") if hasattr(row, "get") else None
+    if image_path_value is not None and not pd.isna(image_path_value):
+        image_path = Path(str(image_path_value))
+        if image_path.is_absolute() and image_path.exists():
+            return image_path
+
+    return Path(images_dir) / str(row["image_rel_path"])
+
+
+def row_diagnostic_label(row) -> str | None:
+    label = row.get("diagnostic") if hasattr(row, "get") else None
+    if label is None or pd.isna(label):
+        return None
+    return str(label).upper()
+
+
+def apply_image_transform(transform: Callable, image, row):
+    if getattr(transform, "requires_label", False):
+        return transform(image, row_diagnostic_label(row))
+    return transform(image)
 
 
 def load_json(path: Path) -> dict[str, object]:
@@ -236,12 +260,65 @@ def configure_mlflow_auth() -> None:
         os.environ.pop("MLFLOW_TRACKING_PASSWORD", None)
 
 
+class ClassAwareTrainTransform:
+    requires_label = True
+
+    def __init__(self, image_size: int):
+        from torchvision import transforms
+
+        imagenet_mean = [0.485, 0.456, 0.406]
+        imagenet_std = [0.229, 0.224, 0.225]
+        tensor_steps = [
+            transforms.ToTensor(),
+            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+        ]
+        self.strong_transform = transforms.Compose(
+            [
+                transforms.Resize((image_size, image_size)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(30),
+                transforms.RandomAffine(degrees=0, translate=(0.04, 0.04), scale=(0.92, 1.08)),
+                transforms.ColorJitter(brightness=0.10, contrast=0.10, saturation=0.06, hue=0.015),
+                *tensor_steps,
+            ]
+        )
+        self.current_transform = transforms.Compose(
+            [
+                transforms.Resize((image_size, image_size)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomRotation(20),
+                transforms.ColorJitter(brightness=0.12, contrast=0.12, saturation=0.08, hue=0.02),
+                *tensor_steps,
+            ]
+        )
+        self.mild_transform = transforms.Compose(
+            [
+                transforms.Resize((image_size, image_size)),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(10),
+                transforms.ColorJitter(brightness=0.06, contrast=0.06, saturation=0.04, hue=0.01),
+                *tensor_steps,
+            ]
+        )
+
+    def __call__(self, image, label: str | None):
+        if label in {"SCC", "MEL"}:
+            return self.strong_transform(image)
+        if label == "BCC":
+            return self.current_transform(image)
+        return self.mild_transform(image)
+
+
 def make_transforms(image_size: int, augment_strength: str = "current"):
     from torchvision import transforms
 
     imagenet_mean = [0.485, 0.456, 0.406]
     imagenet_std = [0.229, 0.224, 0.225]
-    if augment_strength == "current":
+    if augment_strength == "class_aware":
+        train_transform = ClassAwareTrainTransform(image_size)
+    elif augment_strength == "current":
         train_steps = [
             transforms.Resize((image_size, image_size)),
             transforms.RandomHorizontalFlip(),
@@ -261,13 +338,14 @@ def make_transforms(image_size: int, augment_strength: str = "current"):
             f"augment_strength must be one of {AUGMENT_STRENGTHS}, got {augment_strength!r}"
         )
 
-    train_transform = transforms.Compose(
-        [
-            *train_steps,
-            transforms.ToTensor(),
-            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
-        ]
-    )
+    if augment_strength != "class_aware":
+        train_transform = transforms.Compose(
+            [
+                *train_steps,
+                transforms.ToTensor(),
+                transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+            ]
+        )
     eval_transform = transforms.Compose(
         [
             transforms.Resize((image_size, image_size)),

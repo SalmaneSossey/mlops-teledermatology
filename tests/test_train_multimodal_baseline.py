@@ -192,6 +192,46 @@ class TrainMultimodalBaselineTest(unittest.TestCase):
         self.assertEqual(first_features.tolist(), [10.0, 1.0])
         self.assertEqual(second_features.tolist(), [20.0, 0.0])
 
+    def test_multimodal_dataset_passes_diagnostic_to_label_aware_transform(self):
+        if find_spec("torch") is None:
+            self.skipTest("PyTorch is not installed")
+
+        class Recorder:
+            requires_label = True
+
+            def __init__(self):
+                self.labels = []
+
+            def __call__(self, image, label):
+                self.labels.append(label)
+                return image
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            images_dir = root / "all_images" / "imgs_part_1"
+            images_dir.mkdir(parents=True)
+            Image.new("RGB", (2, 2), color="white").save(images_dir / "mel.png")
+            frame = pd.DataFrame(
+                {
+                    "image_rel_path": ["imgs_part_1/mel.png"],
+                    "diagnostic": ["MEL"],
+                    "label_idx": [2],
+                }
+            )
+            metadata_features = pd.DataFrame({"age__z": [0.0]})
+            transform = Recorder()
+            dataset = PadUfesMultimodalDataset(
+                frame,
+                metadata_features,
+                root / "all_images",
+                transform=transform,
+            )
+
+            _, _, label = dataset[0]
+
+        self.assertEqual(label, 2)
+        self.assertEqual(transform.labels, ["MEL"])
+
     def test_validate_multimodal_training_options_rejects_bad_values(self):
         with self.assertRaises(ValueError):
             validate_multimodal_training_options(
@@ -203,6 +243,16 @@ class TrainMultimodalBaselineTest(unittest.TestCase):
                     metadata_dropout=1.0,
                 )
             )
+
+        validate_multimodal_training_options(
+            MultimodalTrainingConfig(
+                images_dir=Path("/images"),
+                metadata_path=Path("/metadata.csv"),
+                splits_dir=Path("/splits"),
+                output_dir=Path("/out"),
+                augment_strength="class_aware",
+            )
+        )
 
         with self.assertRaises(ValueError):
             validate_multimodal_training_options(

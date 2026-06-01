@@ -34,6 +34,7 @@ from src.training.train_image_baseline import (
     LOSS_TYPES,
     SAMPLERS,
     WorkerSeeder,
+    apply_image_transform,
     autocast_context,
     build_model,
     configure_mlflow_auth,
@@ -45,6 +46,7 @@ from src.training.train_image_baseline import (
     make_grad_scaler,
     make_torch_generator,
     make_transforms,
+    resolve_manifest_image_path,
     resolve_tracking_uri,
     sample_weights_for_training,
     seed_everything,
@@ -175,10 +177,10 @@ class PadUfesMultimodalDataset:
 
         torch_module = require_torch()
         row = self.frame.iloc[index]
-        image_path = self.images_dir / row["image_rel_path"]
+        image_path = resolve_manifest_image_path(row, self.images_dir)
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
-            image = self.transform(image)
+            image = apply_image_transform(self.transform, image, row)
         metadata_array = self.metadata_features.iloc[index].to_numpy(
             dtype=np.float32,
             copy=True,
@@ -661,7 +663,11 @@ def train_multimodal_baseline(config: MultimodalTrainingConfig) -> dict[str, obj
             device=device,
         ).to(device)
         model.load_state_dict(checkpoint["model_state_dict"])
-        return evaluate_multimodal_and_log(model, test_loader, device, inputs, paths)
+        metrics = evaluate_multimodal_and_log(model, test_loader, device, inputs, paths)
+        active_run = mlflow.active_run()
+        if active_run is not None:
+            metrics["mlflow_run_id"] = active_run.info.run_id
+        return metrics
     finally:
         if mlflow.active_run() is not None:
             mlflow.end_run()

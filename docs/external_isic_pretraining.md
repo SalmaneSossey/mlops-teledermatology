@@ -115,3 +115,28 @@ SCC and MEL recall/F1
 
 If it only improves one class by damaging another high-risk class, report it as
 an ablation rather than the final model.
+
+## Follow-Up: Class-Aware Augmentation
+
+The current weak class is `SCC`, so a controlled follow-up is to keep the same
+ISIC-initialized multimodal setup and add dynamic class-aware training
+augmentation:
+
+```bash
+python -m src.training.train_multimodal_baseline \
+  --images-dir /content/pad_ufes_20/all_images \
+  --metadata-path /content/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/multimodal_class_aware_aug/isic_init \
+  --experiment-name pad-ufes-20-multimodal-isic-class-aware-aug \
+  --hf-dataset-repo SalmaneExploring/pad-ufes-20 \
+  --initial-image-checkpoint /content/drive/MyDrive/mlops-teledermatology/runs/isic_2019_pretrain/efficientnet_b0_best.pt \
+  --sampler weighted_random \
+  --augment-strength class_aware \
+  --epochs 8 \
+  --batch-size 32
+```
+
+Use `--batch-size 16` if Colab GPU memory is tight. Promote/report this run as
+better only if `SCC` recall improves and macro F1, balanced accuracy, and
+high-risk recall each stay within `0.02` of the current best run.

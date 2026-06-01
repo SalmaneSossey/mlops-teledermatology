@@ -12,6 +12,7 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 - Expo patient mobile app for camera/gallery case submission and patient history
 - Admin feedback export for doctor-reviewed retraining candidates
 - Lightweight monitoring for prediction latency, risk distribution, and review agreement
+- Feedback-driven retraining pipeline with validation, candidate training, and promotion gates
 - GitHub Actions CI and CPU/dev Docker packaging
 - Generated figures under `figures/`
 - AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
@@ -317,6 +318,12 @@ The Colab sweep checklist and first multimodal baseline command are in:
 docs/colab_hparam_sweep.md
 ```
 
+The dedicated Colab notebook for the SCC-focused class-aware augmentation run is:
+
+```text
+notebooks/colab-class-aware-augmentation.ipynb
+```
+
 External ISIC 2019 image pretraining, used to test whether more dermatology
 images improve PAD-UFES-20 SCC/MEL behavior, is documented in:
 
@@ -357,6 +364,29 @@ python -m src.training.train_multimodal_baseline \
   --splits-dir data/processed/splits \
   --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/multimodal_baseline
 ```
+
+To test whether stronger train-only augmentation improves the weak high-risk
+`SCC` class, run the ISIC-initialized multimodal class-aware augmentation
+experiment in Colab:
+
+```bash
+python -m src.training.train_multimodal_baseline \
+  --images-dir /content/pad_ufes_20/all_images \
+  --metadata-path /content/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/multimodal_class_aware_aug/isic_init \
+  --experiment-name pad-ufes-20-multimodal-isic-class-aware-aug \
+  --hf-dataset-repo SalmaneExploring/pad-ufes-20 \
+  --initial-image-checkpoint /content/drive/MyDrive/mlops-teledermatology/runs/isic_2019_pretrain/efficientnet_b0_best.pt \
+  --sampler weighted_random \
+  --augment-strength class_aware \
+  --epochs 8 \
+  --batch-size 32
+```
+
+If Colab runs out of memory, rerun with `--batch-size 16`. Treat the run as an
+ablation unless SCC recall improves without more than a `0.02` drop in macro F1,
+balanced accuracy, or high-risk recall.
 
 The first metadata-only smoke result is summarized in:
 
@@ -429,6 +459,27 @@ Then start the API and client:
 uvicorn src.app.main:app --reload
 streamlit run src/app/streamlit_client.py
 ```
+
+Reviewed doctor feedback can be exported and used to train a gated candidate
+model. The dry run validates feedback and writes augmented manifests without
+starting GPU training:
+
+```bash
+PYTHONPATH=. python scripts/export_retraining_manifest.py \
+  --output-path data/feedback/retraining_candidates.csv
+
+PYTHONPATH=. python scripts/run_retraining_pipeline.py \
+  --feedback-path data/feedback/retraining_candidates.csv \
+  --images-dir data/raw/pad_ufes_20/all_images \
+  --metadata-path data/raw/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir runs/feedback_retraining \
+  --dry-run
+```
+
+Remove `--dry-run` when running on a GPU machine. Add
+`--build-candidate-bundle` to write `storage/model_bundle_candidate` after
+training; promote it only after reviewing `runs/feedback_retraining/retraining_report.json`.
 
 ## Cloud Cost Guardrails
 

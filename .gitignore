@@ -17,8 +17,11 @@ data/interim/*
 data/processed/*
 !data/processed/.gitignore
 !data/processed/*.dvc
+data/feedback/*
+!data/feedback/.gitignore
 models/
 mlruns/
+runs/
 storage/*
 !storage/.gitignore
 *.zip

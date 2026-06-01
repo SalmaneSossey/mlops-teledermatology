@@ -6,9 +6,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 from src.training.train_image_baseline import (
     DEFAULT_LABELS,
+    PadUfesImageDataset,
     TrainingConfig,
     WorkerSeeder,
     build_artifact_paths,
@@ -109,6 +111,76 @@ class TrainImageBaselineHelpersTest(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             validate_training_options(config)
+
+    def test_validate_training_options_accepts_class_aware_augmentation(self):
+        config = TrainingConfig(
+            images_dir=Path("/images"),
+            splits_dir=Path("/splits"),
+            output_dir=Path("/out"),
+            augment_strength="class_aware",
+        )
+
+        validate_training_options(config)
+
+    def test_dataset_passes_diagnostic_to_label_aware_transform(self):
+        class Recorder:
+            requires_label = True
+
+            def __init__(self):
+                self.labels = []
+
+            def __call__(self, image, label):
+                self.labels.append(label)
+                return image
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            images_dir = root / "all_images" / "imgs_part_1"
+            images_dir.mkdir(parents=True)
+            Image.new("RGB", (2, 2), color="white").save(images_dir / "scc.png")
+            frame = pd.DataFrame(
+                {
+                    "image_rel_path": ["imgs_part_1/scc.png"],
+                    "diagnostic": ["SCC"],
+                    "label_idx": [4],
+                }
+            )
+            transform = Recorder()
+            dataset = PadUfesImageDataset(frame, root / "all_images", transform=transform)
+
+            _, label = dataset[0]
+
+        self.assertEqual(label, 4)
+        self.assertEqual(transform.labels, ["SCC"])
+
+    def test_dataset_keeps_normal_transform_signature(self):
+        class NormalTransform:
+            def __init__(self):
+                self.calls = 0
+
+            def __call__(self, image):
+                self.calls += 1
+                return image
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            images_dir = root / "all_images" / "imgs_part_1"
+            images_dir.mkdir(parents=True)
+            Image.new("RGB", (2, 2), color="white").save(images_dir / "ack.png")
+            frame = pd.DataFrame(
+                {
+                    "image_rel_path": ["imgs_part_1/ack.png"],
+                    "diagnostic": ["ACK"],
+                    "label_idx": [0],
+                }
+            )
+            transform = NormalTransform()
+            dataset = PadUfesImageDataset(frame, root / "all_images", transform=transform)
+
+            _, label = dataset[0]
+
+        self.assertEqual(label, 0)
+        self.assertEqual(transform.calls, 1)
 
     def test_worker_seeder_is_repeatable(self):
         seeder = WorkerSeeder(base_seed=123)

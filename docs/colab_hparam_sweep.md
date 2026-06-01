@@ -88,3 +88,29 @@ python -m src.training.train_multimodal_baseline \
 
 Compare `test_macro_f1`, `test_balanced_accuracy`, `test_high_risk_recall`, and
 `test_selection_score` against the image-only and metadata-only reports.
+
+## Class-Aware Augmentation Experiment
+
+Use this after the ISIC-initialized multimodal baseline when the goal is to test
+whether stronger train-only augmentation helps weak high-risk classes,
+especially `SCC`.
+
+```bash
+python -m src.training.train_multimodal_baseline \
+  --images-dir /content/pad_ufes_20/all_images \
+  --metadata-path /content/pad_ufes_20/metadata.csv \
+  --splits-dir data/processed/splits \
+  --output-dir /content/drive/MyDrive/mlops-teledermatology/runs/multimodal_class_aware_aug/isic_init \
+  --experiment-name pad-ufes-20-multimodal-isic-class-aware-aug \
+  --hf-dataset-repo SalmaneExploring/pad-ufes-20 \
+  --initial-image-checkpoint /content/drive/MyDrive/mlops-teledermatology/runs/isic_2019_pretrain/efficientnet_b0_best.pt \
+  --sampler weighted_random \
+  --augment-strength class_aware \
+  --epochs 8 \
+  --batch-size 32
+```
+
+If Colab runs out of memory, rerun with `--batch-size 16`.
+
+Treat this as an ablation unless it improves `SCC` recall without more than a
+`0.02` drop in macro F1, balanced accuracy, or high-risk recall.
