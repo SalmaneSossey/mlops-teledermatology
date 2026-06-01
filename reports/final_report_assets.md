@@ -72,6 +72,7 @@ Screenshot folder:
 
 Available screenshots:
 
+- `system-architecture.png`
 - `mobile-login.jpg`
 - `mobile-new-case-form.jpg`
 - `mobile-image-preview.jpg`

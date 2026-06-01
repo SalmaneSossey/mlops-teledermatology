@@ -19,6 +19,13 @@ workflows, and an Expo Android patient app for image upload and prediction.
 - Generated figures under `figures/`
 - AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
 
+## System Architecture
+
+The diagram summarizes the implemented local MLOps demo and planned extensions
+such as deeper drift monitoring and production deployment hardening.
+
+<img src="docs/assets/demo-screenshots/system-architecture.png" alt="MLOps teledermatology system architecture" width="100%">
+
 ## Demo Screenshots
 
 The end-to-end demo includes a physical Android patient app, FastAPI inference
