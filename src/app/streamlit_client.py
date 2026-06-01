@@ -35,15 +35,41 @@ def show_probability_panel(probabilities: dict[str, float] | None) -> None:
     st.bar_chart(frame.set_index("label")["probability"])
 
 
-def show_image_preview(image_path: str | None, caption: str | None = None) -> None:
+def local_image_path(image_path: str | None) -> Path | None:
     if not image_path:
-        st.info("No image was uploaded for this case.")
-        return
+        return None
     path = Path(image_path)
-    if not path.exists():
-        st.warning(f"Image file is not available locally: {image_path}")
+    if path.exists():
+        return path
+    container_prefix = Path("/app/storage")
+    try:
+        relative_path = path.relative_to(container_prefix)
+    except ValueError:
+        return None
+    host_path = Path("storage") / relative_path
+    return host_path if host_path.exists() else None
+
+
+def show_image_preview(
+    image: dict[str, Any] | None = None,
+    image_path: str | None = None,
+    caption: str | None = None,
+) -> None:
+    if image and image.get("id"):
+        response = api_request("GET", f"/doctor/images/{image['id']}")
+        if response.ok:
+            st.image(
+                response.content,
+                caption=caption or image.get("original_filename"),
+                use_container_width=True,
+            )
+            return
+
+    resolved_path = local_image_path(image_path or (image.get("stored_path") if image else None))
+    if resolved_path is None:
+        st.info("No image preview is available for this case.")
         return
-    st.image(str(path), caption=caption or path.name, use_container_width=True)
+    st.image(str(resolved_path), caption=caption or resolved_path.name, use_container_width=True)
 
 
 def api_headers() -> dict[str, str]:
@@ -200,8 +226,8 @@ def doctor_page() -> None:
     with preview_columns[0]:
         st.subheader("Lesion Image")
         show_image_preview(
-            latest_image.get("stored_path") if latest_image else None,
-            latest_image.get("original_filename") if latest_image else None,
+            image=latest_image,
+            caption=latest_image.get("original_filename") if latest_image else None,
         )
     with preview_columns[1]:
         st.subheader("Latest Prediction")
@@ -344,8 +370,8 @@ def admin_page() -> None:
             candidate_left, candidate_right = st.columns([1, 1])
             with candidate_left:
                 show_image_preview(
-                    selected_candidate.get("image_path"),
-                    selected_candidate.get("original_filename"),
+                    image_path=selected_candidate.get("image_path"),
+                    caption=selected_candidate.get("original_filename"),
                 )
             with candidate_right:
                 st.metric("Final diagnosis", selected_candidate["final_diagnosis"])

@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -601,6 +602,25 @@ def list_doctor_consultations(
             )
         )
     return responses
+
+
+@app.get("/doctor/images/{image_id}")
+def get_doctor_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("doctor", "admin")),
+) -> FileResponse:
+    image = db.query(LesionImage).filter(LesionImage.id == image_id).one_or_none()
+    if image is None:
+        raise HTTPException(status_code=404, detail="Image not found")
+    image_path = Path(image.stored_path)
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image file is not available")
+    return FileResponse(
+        image_path,
+        media_type=image.content_type or "application/octet-stream",
+        filename=image.original_filename,
+    )
 
 
 @app.post("/doctor/consultations/{consultation_id}/review", response_model=ReviewResponse)

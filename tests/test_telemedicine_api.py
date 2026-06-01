@@ -179,6 +179,12 @@ class TelemedicineApiTest(unittest.TestCase):
         self.assertEqual(queue.status_code, 200, queue.text)
         self.assertEqual(queue.json()[0]["latest_prediction"]["predicted_label"], "BCC")
         self.assertEqual(queue.json()[0]["latest_image"]["original_filename"], "lesion.png")
+        image_download = self.client.get(
+            f"/doctor/images/{queue.json()[0]['latest_image']['id']}",
+            headers=doctor_headers,
+        )
+        self.assertEqual(image_download.status_code, 200, image_download.text)
+        self.assertEqual(image_download.headers["content-type"], "image/png")
 
         review = self.client.post(
             f"/doctor/consultations/{consultation_id}/review",
