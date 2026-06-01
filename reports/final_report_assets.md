@@ -80,6 +80,8 @@ Available screenshots:
 - `streamlit-doctor-review.png`
 - `streamlit-bcc-review.png`
 - `streamlit-admin-dashboard.png`
+- `mlflow-experiments.png`
+- `mlflow-hparam-sweep.png`
 
 Needed or captured views:
 

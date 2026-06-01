@@ -40,6 +40,12 @@ backend, Streamlit doctor review, and Streamlit admin monitoring.
 |---|---|---|
 | <img src="docs/assets/demo-screenshots/streamlit-doctor-review.png" width="300" alt="Streamlit doctor review screen"> | <img src="docs/assets/demo-screenshots/streamlit-bcc-review.png" width="300" alt="Streamlit BCC review example"> | <img src="docs/assets/demo-screenshots/streamlit-admin-dashboard.png" width="300" alt="Streamlit admin monitoring dashboard"> |
 
+### Experiment Tracking
+
+| MLflow experiments | Hyperparameter sweep |
+|---|---|
+| <img src="docs/assets/demo-screenshots/mlflow-experiments.png" width="420" alt="DagsHub MLflow experiments overview"> | <img src="docs/assets/demo-screenshots/mlflow-hparam-sweep.png" width="420" alt="DagsHub MLflow hyperparameter sweep runs"> |
+
 ## Data
 
 Raw data is not committed to this repository. Place the PAD-UFES-20 files under:
