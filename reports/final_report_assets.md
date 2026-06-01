@@ -72,16 +72,16 @@ erDiagram
 
 ## Mobile Demo Verification
 
-Use [Run_mobile_app.md](../Run_mobile_app.md) for the physical-phone validation. The next run should explicitly verify:
+Use [Run_mobile_app.md](../Run_mobile_app.md) for the physical-phone validation. The preferred professor-demo path is USB debugging with `adb reverse`.
 
-- Expo starts in tunnel mode.
-- `EXPO_PUBLIC_TELEDERM_API_URL` uses the localtunnel URL once, without a duplicated `https://`.
+- Expo starts in localhost mode with `adb reverse tcp:8081 tcp:8081`.
+- The backend is reachable from the phone through `adb reverse tcp:8000 tcp:8000`.
 - Login works with `patient@example.com`.
 - Gallery/camera upload succeeds through `expo-file-system/legacy`.
 - The prediction screen shows the image preview, loading progress, risk badge, label, and probability bars.
 - The submitted case appears in patient history and doctor review.
 
-This repository update cannot physically validate the phone flow by itself; it prepares the app and runbook for that validation step.
+Physical-phone validation succeeded on June 1, 2026. Captured screenshots should include the mobile prediction result screen, mobile history screen, Streamlit doctor review, and Streamlit admin monitoring.
 
 ## Final Report Sections
 

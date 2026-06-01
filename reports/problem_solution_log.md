@@ -185,9 +185,128 @@ cd apps/mobile
 EXPO_PUBLIC_TELEDERM_API_URL=<fresh-localtunnel-url> npx expo start --tunnel --clear
 ```
 
-**Report takeaway:** Local mobile demos from WSL2 need network tunneling or
-Windows firewall/network configuration. The tunnel approach was the fastest and
-most reliable for demonstration.
+**Report takeaway:** Local mobile demos from WSL2 need an explicit networking
+strategy. Tunnels were useful for debugging, but the final reliable demo path
+became USB debugging with `adb reverse`.
+
+### Localtunnel And Expo Tunnel Instability
+
+**Problem:** During physical-phone validation, `localtunnel` sometimes printed a
+public URL but the URL timed out or reset when tested with:
+
+```bash
+curl --max-time 15 https://<localtunnel-url>/docs
+```
+
+Expo tunnel also failed with ngrok-related errors:
+
+```text
+CommandError: failed to start tunnel
+session closed
+remote gone away
+```
+
+**Solution:** We stopped relying on tunnels for the final physical-phone demo.
+`localhost.run` was tested as a backend-only fallback and successfully exposed
+FastAPI:
+
+```bash
+ssh -R 80:localhost:8000 nokey@localhost.run
+curl --max-time 15 https://<localhost-run-url>/docs
+```
+
+However, the final stable solution was Android USB debugging with `adb reverse`
+for both Expo Metro and FastAPI.
+
+**Report takeaway:** Tunnels are convenient, but they add third-party
+availability and network-state risk. For a live demo, USB debugging with reverse
+ports is more deterministic.
+
+### Android USB Debugging From WSL2
+
+**Problem:** `adb devices` initially showed no connected device in WSL even
+though the phone was connected to the laptop.
+
+**Solution:** We used `usbipd-win` from an Administrator PowerShell to pass the
+phone into WSL:
+
+```powershell
+usbipd list
+usbipd bind --busid 2-4
+usbipd attach --wsl --busid 2-4
+```
+
+WSL then saw the phone through `lsusb`, but `adb devices` was still empty
+because the USB device node was root-only:
+
+```text
+crw------- 1 root root ... /dev/bus/usb/001/002
+```
+
+We fixed that session with:
+
+```bash
+sudo chmod a+rw /dev/bus/usb/001/002
+adb kill-server
+adb start-server
+adb devices
+```
+
+Once the phone appeared as `device`, we mapped phone localhost ports back to
+WSL:
+
+```bash
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:8000 tcp:8000
+```
+
+Expo was then started with:
+
+```bash
+EXPO_PUBLIC_TELEDERM_API_URL=http://127.0.0.1:8000 npx expo start --localhost --clear
+```
+
+**Report takeaway:** WSL2 physical-device demos need explicit USB passthrough
+and sometimes temporary USB permissions. `adb reverse` avoids Wi-Fi, LAN, and
+third-party tunnel fragility.
+
+### Stale Mobile Authentication Token
+
+**Problem:** After changing connection methods, the mobile app reached the
+backend but failed on submission with:
+
+```text
+Invalid or expired token
+```
+
+**Solution:** The app had a saved token from an older session. Logging out from
+the Profile tab and logging in again with the seeded patient account refreshed
+the JWT and fixed the issue.
+
+**Report takeaway:** Mobile demos should include a session reset step after
+changing backend URLs or restarting the backend. The quickest fix is logout and
+login; clearing Expo Go storage is the fallback.
+
+### Physical Phone Validation Success
+
+**Problem:** The next required validation was to prove the mobile upload flow
+worked on a real Android phone, especially after switching uploads to
+`expo-file-system/legacy`.
+
+**Solution:** After USB debugging setup, the app successfully:
+
+- opened in Expo Go
+- logged in as the seeded patient
+- selected a gallery image
+- created a consultation
+- uploaded the image
+- ran prediction
+- rendered risk, predicted label, warning, and probability bars
+- showed the submitted case in patient history
+
+**Report takeaway:** The mobile patient flow is now physically validated, not
+only tested in a browser or emulator. Screenshots were captured for prediction
+results and patient history.
 
 ### Incorrect API URL On Mobile
 
