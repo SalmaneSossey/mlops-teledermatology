@@ -64,6 +64,24 @@ erDiagram
 
 ## Screenshot Checklist
 
+Screenshot folder:
+
+- Windows: `C:\Users\lione\Downloads\determa-pics`
+- WSL: `/mnt/c/Users/lione/Downloads/determa-pics`
+
+Available screenshots:
+
+- `login-mobile.jpg`
+- `form-mobile.jpg`
+- `uploading-image-mobile.jpg`
+- `prediction-mobile.jpg`
+- `history-mobile.jpg`
+- `doctorReview-streamlit.png`
+- `BCC_review-streamlit.png`
+- `amin-dashboard-doctor-streamlit.png`
+
+Needed or captured views:
+
 - DagsHub MLflow experiment page showing the final run and ablation runs.
 - FastAPI `/docs` with auth, patient, doctor, admin, monitoring, and model endpoints.
 - Streamlit admin monitoring with metrics, alerts, recent predictions, and retraining candidates.
