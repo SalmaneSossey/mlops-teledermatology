@@ -3,14 +3,47 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import requests
 import streamlit as st
 
 API_URL = os.environ.get("TELEDERM_API_URL", "http://localhost:8000").rstrip("/")
 LABELS = ["ACK", "BCC", "MEL", "NEV", "SCC", "SEK"]
 TRIAGE_DECISIONS = ["routine", "urgent", "refer", "monitor"]
+
+
+def probability_frame(probabilities: dict[str, float] | None) -> pd.DataFrame:
+    rows = [
+        {"label": label, "probability": float(probability)}
+        for label, probability in (probabilities or {}).items()
+    ]
+    rows.sort(key=lambda row: row["probability"], reverse=True)
+    return pd.DataFrame(rows)
+
+
+def show_probability_panel(probabilities: dict[str, float] | None) -> None:
+    frame = probability_frame(probabilities)
+    if frame.empty:
+        st.info("No prediction probabilities available yet.")
+        return
+    display_frame = frame.copy()
+    display_frame["probability"] = display_frame["probability"].map(lambda value: f"{value:.1%}")
+    st.dataframe(display_frame, use_container_width=True, hide_index=True)
+    st.bar_chart(frame.set_index("label")["probability"])
+
+
+def show_image_preview(image_path: str | None, caption: str | None = None) -> None:
+    if not image_path:
+        st.info("No image was uploaded for this case.")
+        return
+    path = Path(image_path)
+    if not path.exists():
+        st.warning(f"Image file is not available locally: {image_path}")
+        return
+    st.image(str(path), caption=caption or path.name, use_container_width=True)
 
 
 def api_headers() -> dict[str, str]:
@@ -120,8 +153,16 @@ def patient_page() -> None:
                 return
         prediction = api_request("POST", f"/patient/consultations/{consultation_id}/predict")
         if prediction.ok:
+            payload = prediction.json()
             st.success("Prediction saved")
-            st.json(prediction.json())
+            result_columns = st.columns([1, 2])
+            result_columns[0].metric("Predicted label", payload["predicted_label"])
+            result_columns[0].metric("Risk level", payload["risk_level"])
+            with result_columns[1]:
+                st.subheader("Prediction probabilities")
+                show_probability_panel(payload.get("probabilities"))
+            with st.expander("Raw prediction payload"):
+                st.json(payload)
 
     response = api_request("GET", "/patient/consultations")
     if response.ok:
@@ -145,7 +186,34 @@ def doctor_page() -> None:
     }
     selected_label = st.selectbox("Case", list(options))
     selected = options[selected_label]
-    st.json(selected)
+    consultation = selected["consultation"]
+    latest_prediction = selected.get("latest_prediction")
+    latest_image = selected.get("latest_image")
+
+    overview_columns = st.columns([1, 1, 2])
+    overview_columns[0].metric("Case", consultation["id"])
+    overview_columns[1].metric("Images", selected["image_count"])
+    overview_columns[2].write(f"Patient: `{selected['patient_email']}`")
+    overview_columns[2].write(f"Status: `{consultation['status']}`")
+
+    preview_columns = st.columns([1, 1])
+    with preview_columns[0]:
+        st.subheader("Lesion Image")
+        show_image_preview(
+            latest_image.get("stored_path") if latest_image else None,
+            latest_image.get("original_filename") if latest_image else None,
+        )
+    with preview_columns[1]:
+        st.subheader("Latest Prediction")
+        if latest_prediction:
+            st.metric("Predicted label", latest_prediction["predicted_label"])
+            st.metric("Risk level", latest_prediction["risk_level"])
+            show_probability_panel(latest_prediction.get("probabilities"))
+        else:
+            st.info("No prediction has been generated yet.")
+
+    with st.expander("Case payload"):
+        st.json(selected)
 
     with st.form("review"):
         final_diagnosis = st.selectbox("Final diagnosis", LABELS)
@@ -268,6 +336,25 @@ def admin_page() -> None:
     if retraining.ok:
         cases = retraining.json()
         if cases:
+            options = {
+                f"Case {item['consultation_id']} - {item['patient_email']} - {item['final_diagnosis']}": item
+                for item in cases
+            }
+            selected_candidate = options[st.selectbox("Preview retraining case", list(options))]
+            candidate_left, candidate_right = st.columns([1, 1])
+            with candidate_left:
+                show_image_preview(
+                    selected_candidate.get("image_path"),
+                    selected_candidate.get("original_filename"),
+                )
+            with candidate_right:
+                st.metric("Final diagnosis", selected_candidate["final_diagnosis"])
+                st.metric("Model prediction", selected_candidate.get("predicted_label") or "n/a")
+                st.metric(
+                    "Disagreement",
+                    "yes" if selected_candidate.get("disagreement") else "no",
+                )
+                show_probability_panel(selected_candidate.get("probabilities"))
             st.dataframe(cases, use_container_width=True)
         else:
             st.info("No doctor-reviewed cases are ready for retraining yet")

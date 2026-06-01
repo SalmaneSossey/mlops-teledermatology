@@ -98,6 +98,7 @@ class DoctorConsultationResponse(BaseModel):
     consultation: ConsultationResponse
     patient_email: str
     image_count: int
+    latest_image: ImageResponse | None = None
     latest_prediction: PredictionResponse | None = None
     latest_review: ReviewResponse | None = None
 

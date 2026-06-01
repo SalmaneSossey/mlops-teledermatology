@@ -572,6 +572,12 @@ def list_doctor_consultations(
     consultations = db.query(Consultation).order_by(Consultation.created_at.desc()).all()
     responses = []
     for consultation in consultations:
+        latest_image = (
+            db.query(LesionImage)
+            .filter(LesionImage.consultation_id == consultation.id)
+            .order_by(LesionImage.uploaded_at.desc())
+            .first()
+        )
         latest_prediction = (
             db.query(ModelPrediction)
             .filter(ModelPrediction.consultation_id == consultation.id)
@@ -589,6 +595,7 @@ def list_doctor_consultations(
                 consultation=consultation,
                 patient_email=consultation.patient.user.email,
                 image_count=len(consultation.images),
+                latest_image=latest_image,
                 latest_prediction=latest_prediction_response(latest_prediction),
                 latest_review=latest_review,
             )

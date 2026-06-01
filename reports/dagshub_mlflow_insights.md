@@ -31,6 +31,22 @@ Pulled from `https://dagshub.com/SalmaneSossey/mlops-teledermatology.mlflow` on 
 
 Main conclusion: ISIC external pretraining helped most when combined with metadata fusion. The new PAD multimodal ISIC-initialized run is now the strongest final PAD run by macro F1, balanced accuracy, and high-risk recall.
 
+## Post-Best Ablations
+
+These later experiments were useful diagnostically, but they do not replace the final selected model.
+
+| Experiment | Run ID / Output | Macro F1 | Balanced Acc | High-Risk Recall | SCC Recall | Decision |
+|---|---|---:|---:|---:|---:|---|
+| Final selected PAD multimodal, ISIC initialized | `ef084927bef741f996894b8a0fdd63e3` | 0.6902 | 0.6804 | 0.8902 | 0.2069 | Keep as final |
+| Class-aware augmentation | `multimodal_class_aware_aug/isic_init` | 0.6127 | 0.6115 | 0.8232 | 0.1379 | Failed promotion gates |
+| Derm8 eight-class pretraining/fine-tune ablation | `derm8` Colab run | 0.6145 | 0.6291 | 0.8659 | 0.3103 | Report as ablation only |
+
+The class-aware augmentation run did not achieve its main goal: SCC recall dropped from `0.2069` to `0.1379`, while macro F1, balanced accuracy, and high-risk recall also fell beyond the allowed promotion margins.
+
+The Derm8 label-space experiment improved SCC recall to `0.3103`, which is clinically interesting, but it hurt global metrics enough that it should be presented as an ablation rather than the deployed/final model. It supports the conclusion that broader dermatology label coverage can help weak high-risk classes, but the current pipeline still needs better balancing before replacing the six-class PAD model.
+
+Final model selection therefore remains `ef084927bef741f996894b8a0fdd63e3`.
+
 ## PAD Class-Level Comparison
 
 | Model | ACK F1 | BCC Recall/F1 | MEL Recall/F1 | SCC Recall/F1 | NEV F1 | SEK F1 |

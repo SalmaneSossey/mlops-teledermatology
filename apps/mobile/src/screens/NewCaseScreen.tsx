@@ -126,12 +126,16 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStep, setSubmitStep] = useState<string | null>(null);
 
   function updateForm(key: keyof MetadataForm, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
   async function chooseImage(source: "camera" | "gallery") {
+    if (submitting) {
+      return;
+    }
     setError(null);
     const permission =
       source === "camera"
@@ -167,9 +171,12 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
     }
     setSubmitting(true);
     setError(null);
+    setSubmitStep("Creating the consultation");
     try {
       const consultation = await createConsultation(token, notes, toMetadata(form));
+      setSubmitStep("Uploading the lesion image");
       await uploadConsultationImage(token, consultation.id, image);
+      setSubmitStep("Running model prediction");
       const result = await predictConsultation(token, consultation.id);
       setPrediction(result);
       onSubmitted();
@@ -177,6 +184,7 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
       setError(exc instanceof Error ? exc.message : "Submission failed");
     } finally {
       setSubmitting(false);
+      setSubmitStep(null);
     }
   }
 
@@ -186,6 +194,7 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
     setImage(null);
     setForm(DEFAULT_FORM);
     setError(null);
+    setSubmitStep(null);
   }
 
   return (
@@ -225,10 +234,18 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
 
             <SectionHeader title="Image" />
             <View style={styles.imageActions}>
-              <Pressable onPress={() => chooseImage("gallery")} style={styles.imageButton}>
+              <Pressable
+                disabled={submitting}
+                onPress={() => chooseImage("gallery")}
+                style={[styles.imageButton, submitting && styles.disabledButton]}
+              >
                 <Text style={styles.imageButtonText}>Gallery</Text>
               </Pressable>
-              <Pressable onPress={() => chooseImage("camera")} style={styles.imageButton}>
+              <Pressable
+                disabled={submitting}
+                onPress={() => chooseImage("camera")}
+                style={[styles.imageButton, submitting && styles.disabledButton]}
+              >
                 <Text style={styles.imageButtonText}>Camera</Text>
               </Pressable>
             </View>
@@ -320,9 +337,13 @@ export function NewCaseScreen({ token, onSubmitted }: NewCaseScreenProps) {
             />
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
+          {submitStep ? <Text style={styles.loadingText}>{submitStep}...</Text> : null}
           <Pressable disabled={submitting} onPress={submitCase} style={styles.primaryButton}>
             {submitting ? (
-              <ActivityIndicator color={colors.surface} />
+              <View style={styles.buttonLoading}>
+                <ActivityIndicator color={colors.surface} />
+                <Text style={styles.primaryButtonText}>Submitting</Text>
+              </View>
             ) : (
               <Text style={styles.primaryButtonText}>Submit and predict</Text>
             )}
@@ -397,6 +418,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800"
   },
+  disabledButton: {
+    opacity: 0.55
+  },
   preview: {
     aspectRatio: 1.4,
     borderRadius: radii.md,
@@ -446,6 +470,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900"
   },
+  buttonLoading: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.sm
+  },
   secondaryButton: {
     alignItems: "center",
     borderColor: colors.primary,
@@ -483,6 +512,11 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.danger,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  loadingText: {
+    color: colors.muted,
     fontSize: 14,
     fontWeight: "700"
   }

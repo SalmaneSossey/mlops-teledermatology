@@ -111,5 +111,14 @@ If it fails, stop and restart the `localtunnel` command. Copy the new URL into t
 - Use Expo tunnel mode for the phone demo.
 - Use `localtunnel` for the FastAPI backend from WSL2.
 - Keep the `localtunnel` terminal open while using the app.
-- The `SafeAreaView has been deprecated` warning is harmless for the demo.
+- Safe-area handling uses `react-native-safe-area-context`; the deprecated React Native `SafeAreaView` warning should no longer appear.
 - Image upload uses `expo-file-system/legacy` multipart upload because newer React Native rejected the old FormData object shape.
+
+## 8. Physical Phone Validation Checklist
+
+- Login succeeds with the seeded patient account.
+- Gallery upload shows an image preview before submission.
+- Submit shows progress through consultation creation, image upload, and model prediction.
+- Prediction result shows the risk badge, predicted label, warning, and probability bars.
+- The new case appears in patient history after submission.
+- Doctor review shows the lesion image preview and probability table/bar chart in the Streamlit UI.

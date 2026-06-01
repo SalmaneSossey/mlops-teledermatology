@@ -3,12 +3,12 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   View
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { deleteValue, loadValue, saveValue } from "./src/storage";
 import { colors, spacing } from "./src/theme";
@@ -63,58 +63,62 @@ export default function App() {
 
   if (loadingSession) {
     return (
-      <SafeAreaView style={styles.loadingScreen}>
-        <ActivityIndicator color={colors.primary} />
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.loadingScreen}>
+          <ActivityIndicator color={colors.primary} />
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   if (!token) {
     return (
-      <>
+      <SafeAreaProvider>
         <StatusBar barStyle="dark-content" />
         <LoginScreen onLogin={handleLogin} />
-      </>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <SafeAreaView style={styles.shell}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.body}>
-        {activeTab === "new" ? (
-          <NewCaseScreen
-            onSubmitted={() => setHistoryRefreshKey((current) => current + 1)}
-            token={token}
-          />
-        ) : null}
-        {activeTab === "history" ? (
-          <HistoryScreen refreshKey={historyRefreshKey} token={token} />
-        ) : null}
-        {activeTab === "profile" ? <ProfileScreen onLogout={handleLogout} token={token} /> : null}
-      </View>
-      <View style={styles.tabBar}>
-        {TABS.map((tab) => {
-          const selected = activeTab === tab.key;
-          return (
-            <Pressable
-              key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
-              style={styles.tabButton}
-            >
-              <Ionicons
-                color={selected ? colors.primary : colors.inactive}
-                name={tab.icon}
-                size={24}
-              />
-              <Text style={[styles.tabLabel, selected && styles.tabLabelSelected]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.body}>
+          {activeTab === "new" ? (
+            <NewCaseScreen
+              onSubmitted={() => setHistoryRefreshKey((current) => current + 1)}
+              token={token}
+            />
+          ) : null}
+          {activeTab === "history" ? (
+            <HistoryScreen refreshKey={historyRefreshKey} token={token} />
+          ) : null}
+          {activeTab === "profile" ? <ProfileScreen onLogout={handleLogout} token={token} /> : null}
+        </View>
+        <View style={styles.tabBar}>
+          {TABS.map((tab) => {
+            const selected = activeTab === tab.key;
+            return (
+              <Pressable
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                style={styles.tabButton}
+              >
+                <Ionicons
+                  color={selected ? colors.primary : colors.inactive}
+                  name={tab.icon}
+                  size={24}
+                />
+                <Text style={[styles.tabLabel, selected && styles.tabLabelSelected]}>
+                  {tab.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
