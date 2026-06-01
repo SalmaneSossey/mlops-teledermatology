@@ -68,17 +68,18 @@ Screenshot folder:
 
 - Windows: `C:\Users\lione\Downloads\determa-pics`
 - WSL: `/mnt/c/Users/lione/Downloads/determa-pics`
+- Repo copies: `docs/assets/demo-screenshots/`
 
 Available screenshots:
 
-- `login-mobile.jpg`
-- `form-mobile.jpg`
-- `uploading-image-mobile.jpg`
-- `prediction-mobile.jpg`
-- `history-mobile.jpg`
-- `doctorReview-streamlit.png`
-- `BCC_review-streamlit.png`
-- `amin-dashboard-doctor-streamlit.png`
+- `mobile-login.jpg`
+- `mobile-new-case-form.jpg`
+- `mobile-image-preview.jpg`
+- `mobile-prediction-result.jpg`
+- `mobile-history.jpg`
+- `streamlit-doctor-review.png`
+- `streamlit-bcc-review.png`
+- `streamlit-admin-dashboard.png`
 
 Needed or captured views:
 

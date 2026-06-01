@@ -1,6 +1,8 @@
 # MLOps Teledermatology
 
-Exploratory analysis and preprocessing work for a teledermatology image-classification pipeline using the PAD-UFES-20 dataset.
+End-to-end MLOps teledermatology project using PAD-UFES-20: model training,
+DagsHub MLflow experiment tracking, FastAPI inference, Streamlit doctor/admin
+workflows, and an Expo Android patient app for image upload and prediction.
 
 ## Current State
 
@@ -16,6 +18,27 @@ Exploratory analysis and preprocessing work for a teledermatology image-classifi
 - GitHub Actions CI and CPU/dev Docker packaging
 - Generated figures under `figures/`
 - AWS is optional and budget-guarded; Kubernetes/EKS is intentionally deferred
+
+## Demo Screenshots
+
+The end-to-end demo includes a physical Android patient app, FastAPI inference
+backend, Streamlit doctor review, and Streamlit admin monitoring.
+
+### Mobile Patient Flow
+
+| Login | New case | Image upload |
+|---|---|---|
+| <img src="docs/assets/demo-screenshots/mobile-login.jpg" width="220" alt="Mobile login screen"> | <img src="docs/assets/demo-screenshots/mobile-new-case-form.jpg" width="220" alt="Mobile new case form"> | <img src="docs/assets/demo-screenshots/mobile-image-preview.jpg" width="220" alt="Mobile image upload preview"> |
+
+| Prediction result | Patient history |
+|---|---|
+| <img src="docs/assets/demo-screenshots/mobile-prediction-result.jpg" width="220" alt="Mobile prediction result with probabilities"> | <img src="docs/assets/demo-screenshots/mobile-history.jpg" width="220" alt="Mobile patient case history"> |
+
+### Doctor And Admin Flow
+
+| Doctor review | Additional review example | Admin monitoring |
+|---|---|---|
+| <img src="docs/assets/demo-screenshots/streamlit-doctor-review.png" width="300" alt="Streamlit doctor review screen"> | <img src="docs/assets/demo-screenshots/streamlit-bcc-review.png" width="300" alt="Streamlit BCC review example"> | <img src="docs/assets/demo-screenshots/streamlit-admin-dashboard.png" width="300" alt="Streamlit admin monitoring dashboard"> |
 
 ## Data
 
@@ -121,10 +144,9 @@ npm install
 EXPO_PUBLIC_TELEDERM_API_URL=http://<computer-lan-ip>:8000 npx expo start --lan
 ```
 
-For WSL2 plus a physical Android phone, follow `Run_mobile_app.md`. That
-runbook uses `localtunnel` for the FastAPI backend and Expo tunnel mode for the
-Metro bundle, which avoids the WSL2/Windows firewall issues that can make Expo
-Go spin indefinitely.
+For WSL2 plus a physical Android phone, follow `Run_mobile_app.md`. The current
+validated route uses Android USB debugging with `adb reverse` for both FastAPI
+and Expo Metro, which avoids WSL2 LAN and tunnel instability during live demos.
 
 ## Notebooks
 
