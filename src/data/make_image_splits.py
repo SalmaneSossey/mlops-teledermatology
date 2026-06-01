@@ -236,22 +236,30 @@ def make_patient_split_assignments(
     return assignments
 
 
-def apply_splits(manifest: pd.DataFrame, config: SplitConfig) -> pd.DataFrame:
-    assignments = make_patient_split_assignments(manifest, config)
+def apply_splits(
+    manifest: pd.DataFrame,
+    config: SplitConfig,
+    labels: Iterable[str] = LABELS,
+) -> pd.DataFrame:
+    assignments = make_patient_split_assignments(manifest, config, labels=labels)
     split_manifest = manifest.copy()
     split_manifest["split"] = split_manifest["patient_id"].map(assignments)
     return split_manifest[MANIFEST_COLUMNS].sort_values(["split", "patient_id", "img_id"])
 
 
-def compute_class_weights(train_manifest: pd.DataFrame) -> dict[str, float]:
-    counts = train_manifest["diagnostic"].value_counts().reindex(LABELS, fill_value=0)
+def compute_class_weights(
+    train_manifest: pd.DataFrame,
+    labels: Iterable[str] = LABELS,
+) -> dict[str, float]:
+    labels = list(labels)
+    counts = train_manifest["diagnostic"].value_counts().reindex(labels, fill_value=0)
     if (counts == 0).any():
         missing = counts[counts == 0].index.tolist()
         raise ValueError(f"Training split has no examples for labels: {missing}")
 
     total = int(counts.sum())
-    weights = total / (len(LABELS) * counts)
-    return {label: round(float(weights[label]), 6) for label in LABELS}
+    weights = total / (len(labels) * counts)
+    return {label: round(float(weights[label]), 6) for label in labels}
 
 
 def validate_split_manifest(split_manifest: pd.DataFrame) -> None:
@@ -271,7 +279,11 @@ def validate_split_manifest(split_manifest: pd.DataFrame) -> None:
             raise ValueError(f"{split} split is missing labels: {missing_labels}")
 
 
-def split_summary(split_manifest: pd.DataFrame) -> dict[str, object]:
+def split_summary(
+    split_manifest: pd.DataFrame,
+    labels: Iterable[str] = LABELS,
+) -> dict[str, object]:
+    labels = list(labels)
     distributions = {}
     for split, group in split_manifest.groupby("split"):
         distributions[split] = {
@@ -281,7 +293,7 @@ def split_summary(split_manifest: pd.DataFrame) -> dict[str, object]:
                 label: int(count)
                 for label, count in group["diagnostic"]
                 .value_counts()
-                .reindex(LABELS, fill_value=0)
+                .reindex(labels, fill_value=0)
                 .items()
             },
             "triage_priority_counts": {

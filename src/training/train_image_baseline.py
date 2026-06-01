@@ -426,7 +426,21 @@ def load_initial_checkpoint(model, checkpoint_path: Path, device):
 
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     state_dict = checkpoint.get("model_state_dict", checkpoint)
-    model.load_state_dict(state_dict)
+    model_state = model.state_dict()
+    compatible_state = {
+        key: value
+        for key, value in state_dict.items()
+        if key in model_state and tuple(value.shape) == tuple(model_state[key].shape)
+    }
+    skipped_keys = sorted(set(state_dict) - set(compatible_state))
+    model.load_state_dict(compatible_state, strict=False)
+    if skipped_keys:
+        checkpoint["skipped_incompatible_keys"] = skipped_keys
+        print(
+            "Skipped incompatible checkpoint tensors: "
+            + ", ".join(skipped_keys[:8])
+            + ("..." if len(skipped_keys) > 8 else "")
+        )
     return checkpoint
 
 

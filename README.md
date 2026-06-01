@@ -324,11 +324,19 @@ The dedicated Colab notebook for the SCC-focused class-aware augmentation run is
 notebooks/colab-class-aware-augmentation.ipynb
 ```
 
+The dedicated Colab notebook for eight-class ISIC dermatology pretraining and
+PAD-UFES-20 fine-tuning is:
+
+```text
+notebooks/colab-derm8-isic-pretraining.ipynb
+```
+
 External ISIC 2019 image pretraining, used to test whether more dermatology
 images improve PAD-UFES-20 SCC/MEL behavior, is documented in:
 
 ```text
 docs/external_isic_pretraining.md
+docs/derm8_label_expansion.md
 ```
 
 ## Clinical Metadata

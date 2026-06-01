@@ -16,6 +16,7 @@ from src.training.train_image_baseline import (
     build_artifact_paths,
     high_risk_label_indices,
     high_risk_recall,
+    load_initial_checkpoint,
     load_split_inputs,
     sample_weights_for_training,
     selection_score,
@@ -100,6 +101,11 @@ class TrainImageBaselineHelpersTest(unittest.TestCase):
         weights = sample_weights_for_training(frame, ["ACK", "MEL"])
 
         self.assertLess(weights[0], weights[-1])
+
+    def test_high_risk_indices_accept_derm8_label_space(self):
+        labels = ["ACK", "BCC", "MEL", "NEV", "SCC", "SEK", "DF", "VASC"]
+
+        self.assertEqual(high_risk_label_indices(labels), [1, 2, 4])
 
     def test_validate_training_options_rejects_unknown_sampler(self):
         config = TrainingConfig(
@@ -200,6 +206,33 @@ class TrainImageBaselineHelpersTest(unittest.TestCase):
         self.assertEqual(paths.test_metrics_json, Path("/tmp/run/test_metrics.json"))
         self.assertEqual(paths.classification_report_csv, Path("/tmp/run/classification_report.csv"))
         self.assertEqual(paths.confusion_matrix_csv, Path("/tmp/run/confusion_matrix.csv"))
+
+    def test_initial_checkpoint_skips_incompatible_classifier_tensors(self):
+        try:
+            import torch
+            from torch import nn
+        except ImportError:
+            self.skipTest("PyTorch is not installed")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoint_path = Path(tmpdir) / "checkpoint.pt"
+            model = nn.Sequential(nn.Linear(4, 2))
+            compatible_weight = torch.full_like(model[0].weight, 0.25)
+            incompatible_bias = torch.ones(3)
+            torch.save(
+                {
+                    "model_state_dict": {
+                        "0.weight": compatible_weight,
+                        "0.bias": incompatible_bias,
+                    }
+                },
+                checkpoint_path,
+            )
+
+            checkpoint = load_initial_checkpoint(model, checkpoint_path, "cpu")
+
+        self.assertTrue(torch.equal(model[0].weight, compatible_weight))
+        self.assertEqual(checkpoint["skipped_incompatible_keys"], ["0.bias"])
 
 
 if __name__ == "__main__":
