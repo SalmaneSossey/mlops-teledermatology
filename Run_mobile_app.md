@@ -215,18 +215,6 @@ curl https://strong-rockets-speak.loca.lt/docs
 
 Use the URL that `localtunnel` prints in your own session. Do not add `https://` twice.
 
-Correct:
-
-```text
-https://strong-rockets-speak.loca.lt
-```
-
-Wrong:
-
-```text
-https://https://strong-rockets-speak.loca.lt
-```
-
 If localtunnel hangs or times out, use `localhost.run`:
 
 ```bash
